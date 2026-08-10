@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="SsmsToolset.b7e3f5a1-9c24-4d8e-8f10-2a3b4c5d6e70" Version="0.1.0" Language="en-US" Publisher="SSMS-Toolset contributors" />
+    <DisplayName>SSMS Toolset</DisplayName>
+    <Description xml:space="preserve">Azure Data Studio-style database tools for SQL Server Management Studio 22. Right-click a database in Object Explorer to search objects, get definitions, and script SELECT TOP N using that database's connection.</Description>
+    <Tags>SSMS;SQL Server;Object Explorer;database;tools</Tags>
+  </Metadata>
+  <Installation>
+    <!-- Microsoft.VisualStudio.Ssms is the SSMS shell family; [22.0,23.0) = SSMS 22.x, 64-bit. -->
+    <InstallationTarget Id="Microsoft.VisualStudio.Ssms" Version="[22.0,23.0)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+  </Installation>
+  <Dependencies>
+    <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.7.2,)" />
+  </Dependencies>
+  <Prerequisites>
+    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,)" DisplayName="Visual Studio core editor" />
+  </Prerequisites>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
+  </Assets>
+</PackageManifest>

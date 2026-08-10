@@ -99,9 +99,12 @@ string logic and fully unit-tested.
 
 ## Build & packaging
 
-- SDK-style project targeting `net472`, `Microsoft.VSSDK.BuildTools` (from NuGet)
-  provides the VSIX build targets — no specific installed IDE version required,
-  so CI and contributor builds are reproducible.
+- Legacy-format VSIX project (`ProjectTypeGuids`) targeting `net472`, AnyCPU
+  (`Prefer32Bit=false`). VS reference assemblies come from NuGet
+  (`Microsoft.VisualStudio.SDK`, `Microsoft.VSSDK.BuildTools`); the VSIX
+  packaging targets come from the installed VSSDK (`Microsoft.VsSDK.targets`).
+  Building therefore needs MSBuild from a VS install that has the *Visual Studio
+  extension development* (VSSDK) component — VS 2022 (17.x) or VS 2026 (18.x).
 - Output is a `.vsix` (a zip). Install = unpack its payload into the SSMS
   per-user Extensions folder; see the README and `build/` scripts.
 
