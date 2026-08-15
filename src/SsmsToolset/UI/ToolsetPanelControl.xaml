@@ -133,6 +133,9 @@
                                Foreground="{DynamicResource T.BadgeFg}" FontSize="12"
                                VerticalAlignment="Center"/>
                 </Border>
+                <TextBlock x:Name="VersionText"
+                           Foreground="{DynamicResource T.TextMuted}" FontSize="11"
+                           VerticalAlignment="Bottom" Margin="8,0,0,3"/>
             </StackPanel>
         </DockPanel>
 

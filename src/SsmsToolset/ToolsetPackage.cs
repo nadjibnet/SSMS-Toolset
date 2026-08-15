@@ -26,7 +26,7 @@ namespace SsmsToolset
     [InstalledProductRegistration(
         productName: "SSMS Toolset",
         productDetails: "Azure Data Studio-style database tools for SQL Server Management Studio 22.",
-        productId: "0.1.1")]
+        productId: "0.1.2")]
     // Auto-load when the Object Explorer tool window is present (its well-known GUID).
     [ProvideAutoLoad(ObjectExplorerToolWindowGuid, PackageAutoLoadFlags.BackgroundLoad)]
     [Guid(PackageGuidString)]
@@ -106,6 +106,7 @@ namespace SsmsToolset
 
             _tree.ContextMenuStrip.Items.Add(new ToolStripSeparator());
             _tree.ContextMenuStrip.Items.Add(item);
+            _tree.ContextMenuStrip.Items.Add(new ToolStripSeparator());
         }
 
         private void OpenPanel(string database, string connectionString, INodeInformation node)

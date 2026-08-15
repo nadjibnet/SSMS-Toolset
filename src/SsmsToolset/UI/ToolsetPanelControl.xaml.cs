@@ -48,6 +48,9 @@ namespace SsmsToolset.UI
             ToolsetTheme.Apply(this, ToolsetSettings.Theme);
             DatabaseBadge.Text = databaseName;
 
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            VersionText.Text = $"v{version.Major}.{version.Minor}.{version.Build}";
+
             _objectsView = CollectionViewSource.GetDefaultView(_objects);
             _objectsView.Filter = FilterObject;
             ObjectsGrid.ItemsSource = _objectsView;
