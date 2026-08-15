@@ -42,6 +42,47 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="ToolBtn" TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource T.SubtleBtnFg}"/>
+            <Setter Property="Background" Value="{DynamicResource T.SubtleBtnBg}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource T.Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,3"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <Style x:Key="TypeToggle" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{DynamicResource T.SubtleBtnFg}"/>
+            <Setter Property="Background" Value="{DynamicResource T.SubtleBtnBg}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource T.Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="10,3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource T.AccentBtnBg}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource T.AccentBtnFg}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="False">
+                                <Setter Property="Foreground" Value="{DynamicResource T.TextMuted}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid Margin="16">
@@ -106,10 +147,21 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <!-- Toolbar: refresh + object-type toggles -->
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button x:Name="RefreshBtn" Content="&#x21BB;  Refresh"
+                                    Style="{StaticResource ToolBtn}" Click="RefreshBtn_Click"/>
+                            <ToggleButton x:Name="ToggleTables"     Content="Tables"     Style="{StaticResource TypeToggle}" Click="TypeToggle_Click" Margin="14,0,0,0"/>
+                            <ToggleButton x:Name="ToggleViews"      Content="Views"      Style="{StaticResource TypeToggle}" Click="TypeToggle_Click"/>
+                            <ToggleButton x:Name="ToggleProcedures" Content="Procedures" Style="{StaticResource TypeToggle}" Click="TypeToggle_Click"/>
+                            <ToggleButton x:Name="ToggleFunctions"  Content="Functions"  Style="{StaticResource TypeToggle}" Click="TypeToggle_Click"/>
+                        </StackPanel>
+
+                        <Grid Grid.Row="1" Margin="0,0,0,8">
                             <TextBox x:Name="SearchBox"
                                      Background="{DynamicResource T.Input}" Foreground="{DynamicResource T.Text}"
                                      BorderBrush="{DynamicResource T.Border}" BorderThickness="1" Padding="8,6"
@@ -121,10 +173,10 @@
                                        VerticalAlignment="Center"/>
                         </Grid>
 
-                        <TextBlock x:Name="ObjectsStatus" Grid.Row="1"
+                        <TextBlock x:Name="ObjectsStatus" Grid.Row="2"
                                    Foreground="{DynamicResource T.TextMuted}" FontSize="12" Margin="2,0,0,8"/>
 
-                        <DataGrid x:Name="ObjectsGrid" Grid.Row="2"
+                        <DataGrid x:Name="ObjectsGrid" Grid.Row="3"
                                   AutoGenerateColumns="False" IsReadOnly="True"
                                   CanUserAddRows="False" CanUserDeleteRows="False"
                                   HeadersVisibility="Column"

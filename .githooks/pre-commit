@@ -1,0 +1,35 @@
+#!/bin/sh
+# Auto-increment the patch version on every commit and propagate it into the
+# files that carry a version. version.txt is the single source of truth.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+set -e
+
+root="$(git rev-parse --show-toplevel)"
+vfile="$root/version.txt"
+[ -f "$vfile" ] || printf '0.1.0\n' > "$vfile"
+
+cur="$(tr -d ' \r\n' < "$vfile")"
+major="${cur%%.*}"
+rest="${cur#*.}"
+minor="${rest%%.*}"
+patch="${rest#*.}"
+case "$patch" in ''|*[!0-9]*) patch=0 ;; esac
+patch=$((patch + 1))
+new="$major.$minor.$patch"
+asm="$new.0"
+
+printf '%s\n' "$new" > "$vfile"
+
+assembly_info="$root/src/SsmsToolset/Properties/AssemblyInfo.cs"
+manifest="$root/src/SsmsToolset/source.extension.vsixmanifest"
+package="$root/src/SsmsToolset/ToolsetPackage.cs"
+
+sed -i -E "s/AssemblyVersion\(\"[0-9]+(\.[0-9]+){3}\"\)/AssemblyVersion(\"$asm\")/" "$assembly_info"
+sed -i -E "s/AssemblyFileVersion\(\"[0-9]+(\.[0-9]+){3}\"\)/AssemblyFileVersion(\"$asm\")/" "$assembly_info"
+sed -i -E "s/(<Identity[^>]*Version=\")[0-9]+(\.[0-9]+){2}(\")/\1$new\3/" "$manifest"
+sed -i -E "s/(productId: \")[0-9]+(\.[0-9]+){2}(\")/\1$new\3/" "$package"
+
+git add "$vfile" "$assembly_info" "$manifest" "$package"
+
+printf 'pre-commit: version bumped to %s\n' "$new"

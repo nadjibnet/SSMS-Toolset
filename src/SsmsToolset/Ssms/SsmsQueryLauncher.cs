@@ -38,11 +38,13 @@ namespace SsmsToolset.Ssms
                 throw new InvalidOperationException("Could not resolve the database connection for this node.");
             }
 
-            // CreateNewScript opens the file's contents as the query text; write our SQL there.
+            // CreateNewScript opens the file's contents as the query text; write our SQL
+            // there with uniform CRLF endings so SSMS doesn't prompt about inconsistent
+            // line endings (generated SQL and OBJECT_DEFINITION text can mix LF and CRLF).
             string tempPath = Path.Combine(
                 Path.GetTempPath(),
                 "SsmsToolset_" + Guid.NewGuid().ToString("N") + ".sql");
-            File.WriteAllText(tempPath, sql + Environment.NewLine, new UTF8Encoding(false));
+            File.WriteAllText(tempPath, NormalizeNewLines(sql) + "\r\n", new UTF8Encoding(false));
 
             scriptFactory.CreateNewScript(tempPath, connectionInfo, null);
         }
@@ -73,6 +75,11 @@ namespace SsmsToolset.Ssms
 
             return method?.Invoke(null, new[] { node }) as UIConnectionInfo;
         }
+
+        private static string NormalizeNewLines(string text)
+            => string.IsNullOrEmpty(text)
+                ? string.Empty
+                : text.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", "\r\n");
 
         private static Type ResolveType(string fullName, Assembly preferred)
         {

@@ -34,6 +34,7 @@ namespace SsmsToolset.UI
         private readonly ObservableCollection<DatabaseObject> _objects = new ObservableCollection<DatabaseObject>();
         private ICollectionView _objectsView;
         private string _searchTerm = string.Empty;
+        private bool _suppressToggle;
 
         /// <summary>Wired by the host after the frame is shown; docks the tool window.</summary>
         public Action DockAction { get; set; }
@@ -51,7 +52,48 @@ namespace SsmsToolset.UI
             _objectsView.Filter = FilterObject;
             ObjectsGrid.ItemsSource = _objectsView;
 
+            _suppressToggle = true;
+            ToggleTables.IsChecked = ToolsetSettings.ShowTables;
+            ToggleViews.IsChecked = ToolsetSettings.ShowViews;
+            ToggleProcedures.IsChecked = ToolsetSettings.ShowProcedures;
+            ToggleFunctions.IsChecked = ToolsetSettings.ShowFunctions;
+            _suppressToggle = false;
+
             LoadObjectsAsync();
+        }
+
+        // ── Toolbar: refresh + type toggles ─────────────────────────────────
+
+        private void RefreshBtn_Click(object sender, RoutedEventArgs e) => LoadObjectsAsync();
+
+        private void TypeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (_suppressToggle)
+            {
+                return;
+            }
+
+            // Persist toggle state, then filter the loaded list live. (Unchecked types
+            // are also excluded from the next Refresh query.)
+            ToolsetSettings.ShowTables = ToggleTables.IsChecked == true;
+            ToolsetSettings.ShowViews = ToggleViews.IsChecked == true;
+            ToolsetSettings.ShowProcedures = ToggleProcedures.IsChecked == true;
+            ToolsetSettings.ShowFunctions = ToggleFunctions.IsChecked == true;
+
+            _objectsView?.Refresh();
+            UpdateObjectsStatus();
+        }
+
+        private static bool IsTypeEnabled(string typeLabel)
+        {
+            switch (typeLabel)
+            {
+                case "Table": return ToolsetSettings.ShowTables;
+                case "View": return ToolsetSettings.ShowViews;
+                case "Procedure": return ToolsetSettings.ShowProcedures;
+                case "Function": return ToolsetSettings.ShowFunctions;
+                default: return true;
+            }
         }
 
         // ── Options menu ────────────────────────────────────────────────────
@@ -183,7 +225,12 @@ namespace SsmsToolset.UI
             ObjectsStatus.Text = "Loading objects...";
             try
             {
-                var loaded = await Task.Run(() => DatabaseObjectService.Load(_connectionString));
+                var loaded = await Task.Run(() => DatabaseObjectService.Load(
+                    _connectionString,
+                    ToolsetSettings.ShowTables,
+                    ToolsetSettings.ShowViews,
+                    ToolsetSettings.ShowProcedures,
+                    ToolsetSettings.ShowFunctions));
 
                 _objects.Clear();
                 foreach (var item in loaded)
@@ -211,26 +258,28 @@ namespace SsmsToolset.UI
 
         private bool FilterObject(object item)
         {
+            var dbObject = (DatabaseObject)item;
+
+            if (!IsTypeEnabled(dbObject.TypeLabel))
+            {
+                return false;
+            }
+
             if (string.IsNullOrEmpty(_searchTerm))
             {
                 return true;
             }
 
-            var dbObject = (DatabaseObject)item;
             return dbObject.SearchKey != null && dbObject.SearchKey.Contains(_searchTerm);
         }
 
         private void UpdateObjectsStatus()
         {
             int total = _objects.Count;
-            if (string.IsNullOrEmpty(_searchTerm))
-            {
-                ObjectsStatus.Text = total == 1 ? "1 object" : $"{total} objects";
-                return;
-            }
-
             int shown = _objectsView.Cast<object>().Count();
-            ObjectsStatus.Text = $"{shown} of {total} objects";
+            ObjectsStatus.Text = shown == total
+                ? (total == 1 ? "1 object" : $"{total} objects")
+                : $"{shown} of {total} objects";
         }
 
         // ── Query tab ───────────────────────────────────────────────────────

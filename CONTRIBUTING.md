@@ -49,6 +49,18 @@ debug instructions. In short:
 ./build/uninstall.ps1
 ```
 
+## Versioning
+
+`version.txt` is the single source of truth. A **pre-commit hook** bumps the
+patch number on every commit and writes it into the manifest, assembly info, and
+package registration. Enable it once per clone:
+
+```powershell
+git config core.hooksPath .githooks
+```
+
+Bump the major/minor manually in `version.txt` when appropriate.
+
 ## Commit style
 
 - Clear, imperative commit subjects (e.g. `Add database-node context menu`).
