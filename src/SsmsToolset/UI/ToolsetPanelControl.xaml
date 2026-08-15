@@ -17,17 +17,42 @@
             <Setter Property="BorderBrush" Value="#3C3C3C"/>
             <Setter Property="Padding"     Value="6,3,6,3"/>
         </Style>
+
+        <!-- Dark-theme tab headers -->
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="Background" Value="#2D2D2D"/>
+            <Setter Property="FontSize"   Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#3C3C3C" BorderThickness="1,1,1,0"
+                                CornerRadius="4,4,0,0" Margin="0,0,3,0" Padding="14,6">
+                            <ContentPresenter ContentSource="Header"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1E1E1E"/>
+                                <Setter Property="Foreground" Value="#569CD6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <DockPanel Grid.Row="0" Margin="0,0,0,14">
+        <DockPanel Grid.Row="0" Margin="0,0,0,12">
             <Button x:Name="DockBtn"
                     DockPanel.Dock="Right"
                     Content="Dock to side"
@@ -50,54 +75,119 @@
             </StackPanel>
         </DockPanel>
 
-        <!-- SQL input -->
-        <Border Grid.Row="1" Background="#252526"
-                BorderBrush="#3C3C3C" BorderThickness="1"
-                CornerRadius="6" Padding="12" Margin="0,0,0,12">
-            <StackPanel>
-                <TextBlock Text="SQL Query" Foreground="#DCDCAA" FontSize="12" Margin="0,0,0,8"/>
-                <TextBox x:Name="InputBox"
-                         Background="#1E1E1E" Foreground="#CE9178"
-                         BorderBrush="#3C3C3C" BorderThickness="1" Padding="8"
-                         FontFamily="Consolas" FontSize="13"
-                         AcceptsReturn="True" Height="90" TextWrapping="Wrap"
-                         VerticalScrollBarVisibility="Auto" CaretBrush="White"
-                         Text="SELECT name, database_id, create_date&#x0A;FROM sys.databases&#x0A;ORDER BY name"/>
-                <Button x:Name="ExecuteBtn"
-                        Content="&#x25B6;  Execute"
-                        Background="#0E639C" Foreground="White"
-                        BorderThickness="0" Padding="18,6,18,6" Margin="0,10,0,0"
-                        HorizontalAlignment="Left" FontSize="13" Cursor="Hand"
-                        Click="ExecuteBtn_Click"/>
-            </StackPanel>
-        </Border>
+        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0"
+                    Padding="0,8,0,0">
 
-        <!-- Results -->
-        <Border Grid.Row="2" Background="#252526"
-                BorderBrush="#3C3C3C" BorderThickness="1"
-                CornerRadius="6" Padding="12">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Text="Results" Foreground="#DCDCAA" FontSize="12" Margin="0,0,0,8"/>
-                <TextBlock x:Name="StatusText" Grid.Row="1" FontSize="12"
-                           TextWrapping="Wrap" Margin="0,0,0,6" Visibility="Collapsed"/>
-                <DataGrid x:Name="ResultGrid" Grid.Row="2"
-                          AutoGenerateColumns="True" IsReadOnly="True"
-                          CanUserAddRows="False" CanUserDeleteRows="False"
-                          Background="#1E1E1E" Foreground="#D4D4D4"
-                          BorderBrush="#3C3C3C" BorderThickness="1"
-                          RowBackground="#1E1E1E" AlternatingRowBackground="#252526"
-                          GridLinesVisibility="All"
-                          HorizontalGridLinesBrush="#3C3C3C" VerticalGridLinesBrush="#3C3C3C"
-                          SelectionMode="Extended" SelectionUnit="Cell"
-                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-                          ColumnHeaderStyle="{StaticResource HeaderStyle}"
-                          CellStyle="{StaticResource CellStyle}"/>
-            </Grid>
-        </Border>
+            <!-- ── Primary tab: Objects ─────────────────────────────────── -->
+            <TabItem Header="Objects">
+                <Border Background="#252526" BorderBrush="#3C3C3C" BorderThickness="1"
+                        CornerRadius="6" Padding="12">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Search box -->
+                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                            <TextBox x:Name="SearchBox"
+                                     Background="#1E1E1E" Foreground="#D4D4D4"
+                                     BorderBrush="#3C3C3C" BorderThickness="1" Padding="8,6"
+                                     FontSize="13" CaretBrush="White"
+                                     TextChanged="SearchBox_TextChanged"/>
+                            <!-- Placeholder shown only when empty -->
+                            <TextBlock x:Name="SearchPlaceholder"
+                                       Text="Search objects (accent-insensitive)..."
+                                       Foreground="#6A6A6A" FontSize="13"
+                                       Margin="10,0,0,0" IsHitTestVisible="False"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <TextBlock x:Name="ObjectsStatus" Grid.Row="1"
+                                   Foreground="#858585" FontSize="12" Margin="2,0,0,8"/>
+
+                        <DataGrid x:Name="ObjectsGrid" Grid.Row="2"
+                                  AutoGenerateColumns="False" IsReadOnly="True"
+                                  CanUserAddRows="False" CanUserDeleteRows="False"
+                                  HeadersVisibility="Column"
+                                  Background="#1E1E1E" Foreground="#D4D4D4"
+                                  BorderBrush="#3C3C3C" BorderThickness="1"
+                                  RowBackground="#1E1E1E" AlternatingRowBackground="#252526"
+                                  GridLinesVisibility="Horizontal"
+                                  HorizontalGridLinesBrush="#333333"
+                                  SelectionMode="Extended"
+                                  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                  ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                  CellStyle="{StaticResource CellStyle}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Type"   Binding="{Binding TypeLabel}" Width="110"/>
+                                <DataGridTextColumn Header="Schema" Binding="{Binding Schema}"    Width="120"/>
+                                <DataGridTextColumn Header="Name"   Binding="{Binding Name}"      Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <!-- ── Secondary tab: Query ─────────────────────────────────── -->
+            <TabItem Header="Query">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="#252526"
+                            BorderBrush="#3C3C3C" BorderThickness="1"
+                            CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="SQL Query" Foreground="#DCDCAA" FontSize="12" Margin="0,0,0,8"/>
+                            <TextBox x:Name="InputBox"
+                                     Background="#1E1E1E" Foreground="#CE9178"
+                                     BorderBrush="#3C3C3C" BorderThickness="1" Padding="8"
+                                     FontFamily="Consolas" FontSize="13"
+                                     AcceptsReturn="True" Height="90" TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto" CaretBrush="White"
+                                     Text="SELECT name, database_id, create_date&#x0A;FROM sys.databases&#x0A;ORDER BY name"/>
+                            <Button x:Name="ExecuteBtn"
+                                    Content="&#x25B6;  Execute"
+                                    Background="#0E639C" Foreground="White"
+                                    BorderThickness="0" Padding="18,6,18,6" Margin="0,10,0,0"
+                                    HorizontalAlignment="Left" FontSize="13" Cursor="Hand"
+                                    Click="ExecuteBtn_Click"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1" Background="#252526"
+                            BorderBrush="#3C3C3C" BorderThickness="1"
+                            CornerRadius="6" Padding="12">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Text="Results" Foreground="#DCDCAA" FontSize="12" Margin="0,0,0,8"/>
+                            <TextBlock x:Name="StatusText" Grid.Row="1" FontSize="12"
+                                       TextWrapping="Wrap" Margin="0,0,0,6" Visibility="Collapsed"/>
+                            <DataGrid x:Name="ResultGrid" Grid.Row="2"
+                                      AutoGenerateColumns="True" IsReadOnly="True"
+                                      CanUserAddRows="False" CanUserDeleteRows="False"
+                                      Background="#1E1E1E" Foreground="#D4D4D4"
+                                      BorderBrush="#3C3C3C" BorderThickness="1"
+                                      RowBackground="#1E1E1E" AlternatingRowBackground="#252526"
+                                      GridLinesVisibility="All"
+                                      HorizontalGridLinesBrush="#3C3C3C" VerticalGridLinesBrush="#3C3C3C"
+                                      SelectionMode="Extended" SelectionUnit="Cell"
+                                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                      ColumnHeaderStyle="{StaticResource HeaderStyle}"
+                                      CellStyle="{StaticResource CellStyle}"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+        </TabControl>
     </Grid>
 </UserControl>
