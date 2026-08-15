@@ -57,9 +57,13 @@
     <Compile Include="ToolsetPackage.cs" />
     <Compile Include="Data\DatabaseObject.cs" />
     <Compile Include="Data\DatabaseObjectService.cs" />
+    <Compile Include="Data\SqlScriptGenerator.cs" />
     <Compile Include="Data\TextNormalizer.cs" />
     <Compile Include="Ssms\SsmsConnectionResolver.cs" />
+    <Compile Include="Ssms\SsmsQueryLauncher.cs" />
     <Compile Include="ToolWindow\ToolsetWindowPane.cs" />
+    <Compile Include="UI\ToolsetSettings.cs" />
+    <Compile Include="UI\ToolsetTheme.cs" />
     <Compile Include="UI\ToolsetPanelControl.xaml.cs">
       <DependentUpon>UI\ToolsetPanelControl.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -81,6 +85,10 @@
     </Reference>
     <Reference Include="SqlPackageBase">
       <HintPath>..\..\lib\Ssms22\SqlPackageBase.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.RegSvrEnum">
+      <HintPath>..\..\lib\Ssms22\Microsoft.SqlServer.RegSvrEnum.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

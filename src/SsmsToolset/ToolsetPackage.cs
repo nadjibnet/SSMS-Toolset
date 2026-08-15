@@ -93,21 +93,32 @@ namespace SsmsToolset
             string database = node.InvariantName;
             string connectionString = SsmsConnectionResolver.BuildConnectionString(node, database);
 
+            // Capture the node so the click handler can open a native SSMS query bound
+            // to this database (see SsmsQueryLauncher).
+            var selectedNode = node;
+
             var item = new ToolStripMenuItem(MenuItemText)
             {
                 ForeColor = _tree.ForeColor,
                 BackColor = _tree.BackColor
             };
-            item.Click += (s, args) => OpenPanel(database, connectionString);
+            item.Click += (s, args) => OpenPanel(database, connectionString, selectedNode);
 
             _tree.ContextMenuStrip.Items.Add(new ToolStripSeparator());
             _tree.ContextMenuStrip.Items.Add(item);
         }
 
-        private void OpenPanel(string database, string connectionString)
+        private void OpenPanel(string database, string connectionString, INodeInformation node)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            ToolsetWindowPane.Open(database, connectionString);
+
+            Action<string> openInSsmsQuery = null;
+            if (node != null)
+            {
+                openInSsmsQuery = sql => SsmsQueryLauncher.OpenNewQuery(node, sql);
+            }
+
+            ToolsetWindowPane.Open(database, connectionString, openInSsmsQuery);
         }
     }
 }

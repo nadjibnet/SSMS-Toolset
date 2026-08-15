@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
 using SsmsToolset.Data;
@@ -16,12 +17,19 @@ namespace SsmsToolset.UI
     /// <summary>
     /// The panel shown when you pick "SSMS Toolset" on a database node.
     ///
-    ///  - <b>Objects</b> tab: searchable inventory of tables/views/procs/functions.
+    ///  - <b>Objects</b> tab: searchable inventory of tables/views/procs/functions,
+    ///    with per-row actions (Select Top N, Script as CREATE).
     ///  - <b>Query</b> tab: run ad-hoc SQL against the database's connection.
+    ///
+    /// The options menu toggles the dark/light theme and where object actions open
+    /// their SQL (this panel's Query tab, or a new native SSMS query window).
     /// </summary>
     public partial class ToolsetPanelControl : UserControl
     {
         private readonly string _connectionString;
+
+        /// <summary>Host callback that opens a new native SSMS query with the given SQL.</summary>
+        private readonly Action<string> _openInSsmsQuery;
 
         private readonly ObservableCollection<DatabaseObject> _objects = new ObservableCollection<DatabaseObject>();
         private ICollectionView _objectsView;
@@ -30,10 +38,13 @@ namespace SsmsToolset.UI
         /// <summary>Wired by the host after the frame is shown; docks the tool window.</summary>
         public Action DockAction { get; set; }
 
-        public ToolsetPanelControl(string databaseName, string connectionString)
+        public ToolsetPanelControl(string databaseName, string connectionString, Action<string> openInSsmsQuery = null)
         {
             _connectionString = connectionString;
+            _openInSsmsQuery = openInSsmsQuery;
+
             InitializeComponent();
+            ToolsetTheme.Apply(this, ToolsetSettings.Theme);
             DatabaseBadge.Text = databaseName;
 
             _objectsView = CollectionViewSource.GetDefaultView(_objects);
@@ -41,6 +52,122 @@ namespace SsmsToolset.UI
             ObjectsGrid.ItemsSource = _objectsView;
 
             LoadObjectsAsync();
+        }
+
+        // ── Options menu ────────────────────────────────────────────────────
+
+        private void OptionsBtn_Click(object sender, RoutedEventArgs e)
+        {
+            SyncOptionChecks();
+            OptionsBtn.ContextMenu.PlacementTarget = OptionsBtn;
+            OptionsBtn.ContextMenu.Placement = PlacementMode.Bottom;
+            OptionsBtn.ContextMenu.IsOpen = true;
+        }
+
+        private void SyncOptionChecks()
+        {
+            ThemeDarkItem.IsChecked = ToolsetSettings.Theme == ToolsetThemeKind.Dark;
+            ThemeLightItem.IsChecked = ToolsetSettings.Theme == ToolsetThemeKind.Light;
+
+            TargetSsmsItem.IsEnabled = _openInSsmsQuery != null;
+            TargetToolsetItem.IsChecked = ToolsetSettings.QueryTarget == QueryTarget.ToolsetTab;
+            TargetSsmsItem.IsChecked = ToolsetSettings.QueryTarget == QueryTarget.NewSsmsQuery;
+        }
+
+        private void ThemeDark_Click(object sender, RoutedEventArgs e) => SetTheme(ToolsetThemeKind.Dark);
+        private void ThemeLight_Click(object sender, RoutedEventArgs e) => SetTheme(ToolsetThemeKind.Light);
+
+        private void SetTheme(ToolsetThemeKind kind)
+        {
+            ToolsetSettings.Theme = kind;
+            ToolsetTheme.Apply(this, kind);
+            SyncOptionChecks();
+        }
+
+        private void TargetToolset_Click(object sender, RoutedEventArgs e)
+        {
+            ToolsetSettings.QueryTarget = QueryTarget.ToolsetTab;
+            SyncOptionChecks();
+        }
+
+        private void TargetSsms_Click(object sender, RoutedEventArgs e)
+        {
+            ToolsetSettings.QueryTarget = _openInSsmsQuery != null ? QueryTarget.NewSsmsQuery : QueryTarget.ToolsetTab;
+            SyncOptionChecks();
+        }
+
+        // ── Object actions (row context menu) ───────────────────────────────
+
+        private static DatabaseObject TargetOf(object sender)
+            => (sender as FrameworkElement)?.DataContext as DatabaseObject;
+
+        private void SelectTop100_Click(object sender, RoutedEventArgs e) => SelectTop(TargetOf(sender), 100);
+        private void SelectTop1000_Click(object sender, RoutedEventArgs e) => SelectTop(TargetOf(sender), 1000);
+
+        private void SelectTop(DatabaseObject target, int count)
+        {
+            if (target == null)
+            {
+                return;
+            }
+
+            if (!SqlScriptGenerator.SupportsSelectTop(target))
+            {
+                MainTabs.SelectedIndex = 1;
+                InputBox.Text = $"-- Select Top applies to tables and views, not {target.TypeLabel.ToLowerInvariant()}s.";
+                return;
+            }
+
+            DeliverSql(SqlScriptGenerator.SelectTop(target, count), executeInToolset: true);
+        }
+
+        private async void ScriptCreate_Click(object sender, RoutedEventArgs e)
+        {
+            var target = TargetOf(sender);
+            if (target == null || string.IsNullOrEmpty(_connectionString))
+            {
+                return;
+            }
+
+            try
+            {
+                string script = await Task.Run(() => SqlScriptGenerator.BuildCreateScript(_connectionString, target));
+                DeliverSql(script, executeInToolset: false);
+            }
+            catch (Exception ex)
+            {
+                MainTabs.SelectedIndex = 1;
+                InputBox.Text = $"-- Failed to script {target.FullName}: {ex.Message}";
+            }
+        }
+
+        /// <summary>
+        /// Sends generated SQL to the configured destination: a new SSMS query
+        /// window, or this panel's Query tab (executing it when asked).
+        /// </summary>
+        private void DeliverSql(string sql, bool executeInToolset)
+        {
+            if (ToolsetSettings.QueryTarget == QueryTarget.NewSsmsQuery && _openInSsmsQuery != null)
+            {
+                try
+                {
+                    _openInSsmsQuery(sql);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    MainTabs.SelectedIndex = 1;
+                    InputBox.Text = $"-- Could not open a new SSMS query ({ex.Message}). Showing it here instead:\n\n{sql}";
+                    return;
+                }
+            }
+
+            MainTabs.SelectedIndex = 1;
+            InputBox.Text = sql;
+            if (executeInToolset)
+            {
+                RunCurrentQuery();
+            }
         }
 
         // ── Objects tab ─────────────────────────────────────────────────────
@@ -108,7 +235,9 @@ namespace SsmsToolset.UI
 
         // ── Query tab ───────────────────────────────────────────────────────
 
-        private void ExecuteBtn_Click(object sender, RoutedEventArgs e)
+        private void ExecuteBtn_Click(object sender, RoutedEventArgs e) => RunCurrentQuery();
+
+        private void RunCurrentQuery()
         {
             string sql = InputBox.Text?.Trim();
             if (string.IsNullOrEmpty(sql))

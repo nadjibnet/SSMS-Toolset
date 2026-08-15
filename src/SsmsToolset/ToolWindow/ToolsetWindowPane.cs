@@ -35,19 +35,21 @@ namespace SsmsToolset.ToolWindow
 
         private readonly string _database;
         private readonly string _connectionString;
+        private readonly Action<string> _openInSsmsQuery;
         private HwndSource _hwndSource;
 
-        private ToolsetWindowPane(string database, string connectionString)
+        private ToolsetWindowPane(string database, string connectionString, Action<string> openInSsmsQuery)
         {
             _database = database;
             _connectionString = connectionString;
+            _openInSsmsQuery = openInSsmsQuery;
         }
 
         /// <summary>
         /// Opens the panel as a dockable tool window bound to the given connection.
         /// Falls back to a floating WPF window if the shell rejects the tool window.
         /// </summary>
-        public static void Open(string database, string connectionString)
+        public static void Open(string database, string connectionString, Action<string> openInSsmsQuery)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
@@ -58,7 +60,7 @@ namespace SsmsToolset.ToolWindow
                     throw new InvalidOperationException("IVsUIShell not available.");
                 }
 
-                var pane = new ToolsetWindowPane(database, connectionString);
+                var pane = new ToolsetWindowPane(database, connectionString, openInSsmsQuery);
                 var toolGuid = ToolWindowGuid;
                 var autoActivate = Guid.Empty;
 
@@ -93,7 +95,7 @@ namespace SsmsToolset.ToolWindow
                     Width = 900,
                     Height = 640,
                     WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen,
-                    Content = new ToolsetPanelControl(database, connectionString)
+                    Content = new ToolsetPanelControl(database, connectionString, openInSsmsQuery)
                 }.Show();
             }
         }
@@ -116,7 +118,7 @@ namespace SsmsToolset.ToolWindow
 
             _hwndSource = new HwndSource(parameters)
             {
-                RootVisual = new ToolsetPanelControl(_database, _connectionString)
+                RootVisual = new ToolsetPanelControl(_database, _connectionString, _openInSsmsQuery)
             };
 
             hwnd = _hwndSource.Handle;

@@ -1,0 +1,14 @@
+# Normalize line endings to LF in the repo and working tree, regardless of the
+# machine's core.autocrlf setting. This keeps `git add` from warning that
+# "LF will be replaced by CRLF".
+* text=auto eol=lf
+
+# Binary files: never touch line endings.
+*.dll   binary
+*.exe   binary
+*.vsix  binary
+*.snk   binary
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.mpack binary

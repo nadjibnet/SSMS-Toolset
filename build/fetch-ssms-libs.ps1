@@ -23,7 +23,7 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $destDir = Join-Path $repoRoot 'lib\Ssms22'
 
-$required = @('SqlWorkbench.Interfaces.dll', 'SqlPackageBase.dll')
+$required = @('SqlWorkbench.Interfaces.dll', 'SqlPackageBase.dll', 'Microsoft.SqlServer.RegSvrEnum.dll')
 
 if (-not $SsmsIdeDir) {
     $candidates = @(

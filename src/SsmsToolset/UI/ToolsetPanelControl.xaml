@@ -1,42 +1,41 @@
 <UserControl x:Class="SsmsToolset.UI.ToolsetPanelControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Background="#1E1E1E">
+             Background="{DynamicResource T.Window}">
 
     <UserControl.Resources>
         <Style x:Key="HeaderStyle" TargetType="DataGridColumnHeader">
-            <Setter Property="Background"      Value="#3C3C3C"/>
-            <Setter Property="Foreground"      Value="#DCDCAA"/>
+            <Setter Property="Background"      Value="{DynamicResource T.HeaderBg}"/>
+            <Setter Property="Foreground"      Value="{DynamicResource T.HeaderFg}"/>
             <Setter Property="Padding"         Value="8,4,8,4"/>
-            <Setter Property="BorderBrush"     Value="#555555"/>
+            <Setter Property="BorderBrush"     Value="{DynamicResource T.Border}"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
         </Style>
         <Style x:Key="CellStyle" TargetType="DataGridCell">
             <Setter Property="Background"  Value="Transparent"/>
-            <Setter Property="Foreground"  Value="#D4D4D4"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="Foreground"  Value="{DynamicResource T.Text}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource T.Border}"/>
             <Setter Property="Padding"     Value="6,3,6,3"/>
         </Style>
 
-        <!-- Dark-theme tab headers -->
         <Style TargetType="TabItem">
-            <Setter Property="Foreground" Value="#CCCCCC"/>
-            <Setter Property="Background" Value="#2D2D2D"/>
+            <Setter Property="Foreground" Value="{DynamicResource T.SubtleBtnFg}"/>
+            <Setter Property="Background" Value="{DynamicResource T.TabBg}"/>
             <Setter Property="FontSize"   Value="13"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Border x:Name="Bd"
                                 Background="{TemplateBinding Background}"
-                                BorderBrush="#3C3C3C" BorderThickness="1,1,1,0"
+                                BorderBrush="{DynamicResource T.Border}" BorderThickness="1,1,1,0"
                                 CornerRadius="4,4,0,0" Margin="0,0,3,0" Padding="14,6">
                             <ContentPresenter ContentSource="Header"
                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#1E1E1E"/>
-                                <Setter Property="Foreground" Value="#569CD6"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource T.TabSelBg}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource T.Accent}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -53,34 +52,55 @@
 
         <!-- Header -->
         <DockPanel Grid.Row="0" Margin="0,0,0,12">
-            <Button x:Name="DockBtn"
-                    DockPanel.Dock="Right"
-                    Content="Dock to side"
-                    Background="#2D2D2D" Foreground="#CCCCCC"
-                    BorderBrush="#555555" BorderThickness="1"
-                    Padding="10,4,10,4" FontSize="12" Cursor="Hand"
-                    VerticalAlignment="Center"
-                    ToolTip="Dock this panel inside SSMS"
-                    Click="DockBtn_Click"/>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="DockBtn"
+                        Content="Dock to side"
+                        Background="{DynamicResource T.SubtleBtnBg}" Foreground="{DynamicResource T.SubtleBtnFg}"
+                        BorderBrush="{DynamicResource T.Border}" BorderThickness="1"
+                        Padding="10,4,10,4" FontSize="12" Cursor="Hand"
+                        ToolTip="Dock this panel inside SSMS"
+                        Click="DockBtn_Click"/>
+                <Button x:Name="OptionsBtn"
+                        Content="&#x2699;  Options"
+                        Margin="8,0,0,0"
+                        Background="{DynamicResource T.SubtleBtnBg}" Foreground="{DynamicResource T.SubtleBtnFg}"
+                        BorderBrush="{DynamicResource T.Border}" BorderThickness="1"
+                        Padding="10,4,10,4" FontSize="12" Cursor="Hand"
+                        ToolTip="Options"
+                        Click="OptionsBtn_Click">
+                    <Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Theme" IsEnabled="False"/>
+                            <MenuItem x:Name="ThemeDarkItem"  Header="Dark"  IsCheckable="True" Click="ThemeDark_Click"/>
+                            <MenuItem x:Name="ThemeLightItem" Header="Light" IsCheckable="True" Click="ThemeLight_Click"/>
+                            <Separator/>
+                            <MenuItem Header="Open query in" IsEnabled="False"/>
+                            <MenuItem x:Name="TargetToolsetItem" Header="Toolset query tab" IsCheckable="True" Click="TargetToolset_Click"/>
+                            <MenuItem x:Name="TargetSsmsItem"    Header="New SSMS query"    IsCheckable="True" Click="TargetSsms_Click"/>
+                        </ContextMenu>
+                    </Button.ContextMenu>
+                </Button>
+            </StackPanel>
+
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="SSMS Toolset"
                            FontSize="20" FontWeight="SemiBold"
-                           Foreground="#569CD6" VerticalAlignment="Center"/>
-                <Border Background="#264F78" CornerRadius="4"
+                           Foreground="{DynamicResource T.Accent}" VerticalAlignment="Center"/>
+                <Border Background="{DynamicResource T.BadgeBg}" CornerRadius="4"
                         Margin="12,0,0,0" Padding="8,2,8,2">
                     <TextBlock x:Name="DatabaseBadge"
-                               Foreground="#9CDCFE" FontSize="12"
+                               Foreground="{DynamicResource T.BadgeFg}" FontSize="12"
                                VerticalAlignment="Center"/>
                 </Border>
             </StackPanel>
         </DockPanel>
 
-        <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0"
+        <TabControl x:Name="MainTabs" Grid.Row="1" Background="Transparent" BorderThickness="0"
                     Padding="0,8,0,0">
 
-            <!-- ── Primary tab: Objects ─────────────────────────────────── -->
+            <!-- Primary tab: Objects -->
             <TabItem Header="Objects">
-                <Border Background="#252526" BorderBrush="#3C3C3C" BorderThickness="1"
+                <Border Background="{DynamicResource T.Card}" BorderBrush="{DynamicResource T.Border}" BorderThickness="1"
                         CornerRadius="6" Padding="12">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -89,37 +109,47 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Search box -->
                         <Grid Grid.Row="0" Margin="0,0,0,8">
                             <TextBox x:Name="SearchBox"
-                                     Background="#1E1E1E" Foreground="#D4D4D4"
-                                     BorderBrush="#3C3C3C" BorderThickness="1" Padding="8,6"
-                                     FontSize="13" CaretBrush="White"
-                                     TextChanged="SearchBox_TextChanged"/>
-                            <!-- Placeholder shown only when empty -->
+                                     Background="{DynamicResource T.Input}" Foreground="{DynamicResource T.Text}"
+                                     BorderBrush="{DynamicResource T.Border}" BorderThickness="1" Padding="8,6"
+                                     FontSize="13" TextChanged="SearchBox_TextChanged"/>
                             <TextBlock x:Name="SearchPlaceholder"
                                        Text="Search objects (accent-insensitive)..."
-                                       Foreground="#6A6A6A" FontSize="13"
+                                       Foreground="{DynamicResource T.TextMuted}" FontSize="13"
                                        Margin="10,0,0,0" IsHitTestVisible="False"
                                        VerticalAlignment="Center"/>
                         </Grid>
 
                         <TextBlock x:Name="ObjectsStatus" Grid.Row="1"
-                                   Foreground="#858585" FontSize="12" Margin="2,0,0,8"/>
+                                   Foreground="{DynamicResource T.TextMuted}" FontSize="12" Margin="2,0,0,8"/>
 
                         <DataGrid x:Name="ObjectsGrid" Grid.Row="2"
                                   AutoGenerateColumns="False" IsReadOnly="True"
                                   CanUserAddRows="False" CanUserDeleteRows="False"
                                   HeadersVisibility="Column"
-                                  Background="#1E1E1E" Foreground="#D4D4D4"
-                                  BorderBrush="#3C3C3C" BorderThickness="1"
-                                  RowBackground="#1E1E1E" AlternatingRowBackground="#252526"
+                                  Background="{DynamicResource T.Input}" Foreground="{DynamicResource T.Text}"
+                                  BorderBrush="{DynamicResource T.Border}" BorderThickness="1"
+                                  RowBackground="{DynamicResource T.Input}" AlternatingRowBackground="{DynamicResource T.AltRow}"
                                   GridLinesVisibility="Horizontal"
-                                  HorizontalGridLinesBrush="#333333"
+                                  HorizontalGridLinesBrush="{DynamicResource T.GridLine}"
                                   SelectionMode="Extended"
                                   HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                                   ColumnHeaderStyle="{StaticResource HeaderStyle}"
                                   CellStyle="{StaticResource CellStyle}">
+                            <DataGrid.Resources>
+                                <ContextMenu x:Key="RowMenu">
+                                    <MenuItem Header="Select Top 100"  Click="SelectTop100_Click"/>
+                                    <MenuItem Header="Select Top 1000" Click="SelectTop1000_Click"/>
+                                    <Separator/>
+                                    <MenuItem Header="Script as CREATE" Click="ScriptCreate_Click"/>
+                                </ContextMenu>
+                            </DataGrid.Resources>
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="ContextMenu" Value="{StaticResource RowMenu}"/>
+                                </Style>
+                            </DataGrid.RowStyle>
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Type"   Binding="{Binding TypeLabel}" Width="110"/>
                                 <DataGridTextColumn Header="Schema" Binding="{Binding Schema}"    Width="120"/>
@@ -130,7 +160,7 @@
                 </Border>
             </TabItem>
 
-            <!-- ── Secondary tab: Query ─────────────────────────────────── -->
+            <!-- Secondary tab: Query -->
             <TabItem Header="Query">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -138,29 +168,29 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Background="#252526"
-                            BorderBrush="#3C3C3C" BorderThickness="1"
+                    <Border Grid.Row="0" Background="{DynamicResource T.Card}"
+                            BorderBrush="{DynamicResource T.Border}" BorderThickness="1"
                             CornerRadius="6" Padding="12" Margin="0,0,0,12">
                         <StackPanel>
-                            <TextBlock Text="SQL Query" Foreground="#DCDCAA" FontSize="12" Margin="0,0,0,8"/>
+                            <TextBlock Text="SQL Query" Foreground="{DynamicResource T.Label}" FontSize="12" Margin="0,0,0,8"/>
                             <TextBox x:Name="InputBox"
-                                     Background="#1E1E1E" Foreground="#CE9178"
-                                     BorderBrush="#3C3C3C" BorderThickness="1" Padding="8"
+                                     Background="{DynamicResource T.Input}" Foreground="{DynamicResource T.CodeText}"
+                                     BorderBrush="{DynamicResource T.Border}" BorderThickness="1" Padding="8"
                                      FontFamily="Consolas" FontSize="13"
                                      AcceptsReturn="True" Height="90" TextWrapping="Wrap"
-                                     VerticalScrollBarVisibility="Auto" CaretBrush="White"
+                                     VerticalScrollBarVisibility="Auto"
                                      Text="SELECT name, database_id, create_date&#x0A;FROM sys.databases&#x0A;ORDER BY name"/>
                             <Button x:Name="ExecuteBtn"
                                     Content="&#x25B6;  Execute"
-                                    Background="#0E639C" Foreground="White"
+                                    Background="{DynamicResource T.AccentBtnBg}" Foreground="{DynamicResource T.AccentBtnFg}"
                                     BorderThickness="0" Padding="18,6,18,6" Margin="0,10,0,0"
                                     HorizontalAlignment="Left" FontSize="13" Cursor="Hand"
                                     Click="ExecuteBtn_Click"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="1" Background="#252526"
-                            BorderBrush="#3C3C3C" BorderThickness="1"
+                    <Border Grid.Row="1" Background="{DynamicResource T.Card}"
+                            BorderBrush="{DynamicResource T.Border}" BorderThickness="1"
                             CornerRadius="6" Padding="12">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -168,17 +198,17 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="Results" Foreground="#DCDCAA" FontSize="12" Margin="0,0,0,8"/>
+                            <TextBlock Grid.Row="0" Text="Results" Foreground="{DynamicResource T.Label}" FontSize="12" Margin="0,0,0,8"/>
                             <TextBlock x:Name="StatusText" Grid.Row="1" FontSize="12"
                                        TextWrapping="Wrap" Margin="0,0,0,6" Visibility="Collapsed"/>
                             <DataGrid x:Name="ResultGrid" Grid.Row="2"
                                       AutoGenerateColumns="True" IsReadOnly="True"
                                       CanUserAddRows="False" CanUserDeleteRows="False"
-                                      Background="#1E1E1E" Foreground="#D4D4D4"
-                                      BorderBrush="#3C3C3C" BorderThickness="1"
-                                      RowBackground="#1E1E1E" AlternatingRowBackground="#252526"
+                                      Background="{DynamicResource T.Input}" Foreground="{DynamicResource T.Text}"
+                                      BorderBrush="{DynamicResource T.Border}" BorderThickness="1"
+                                      RowBackground="{DynamicResource T.Input}" AlternatingRowBackground="{DynamicResource T.AltRow}"
                                       GridLinesVisibility="All"
-                                      HorizontalGridLinesBrush="#3C3C3C" VerticalGridLinesBrush="#3C3C3C"
+                                      HorizontalGridLinesBrush="{DynamicResource T.GridLine}" VerticalGridLinesBrush="{DynamicResource T.GridLine}"
                                       SelectionMode="Extended" SelectionUnit="Cell"
                                       HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                                       ColumnHeaderStyle="{StaticResource HeaderStyle}"
