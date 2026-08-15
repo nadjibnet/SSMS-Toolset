@@ -45,6 +45,13 @@ function Find-MSBuild {
     return $found
 }
 
+# Ensure the (git-ignored) SSMS interop assemblies are present before building.
+$libDir = Join-Path $repoRoot 'lib\Ssms22'
+if (-not (Test-Path (Join-Path $libDir 'SqlWorkbench.Interfaces.dll'))) {
+    Write-Host "Fetching SSMS interop assemblies from the local SSMS 22 install ..." -ForegroundColor Cyan
+    & (Join-Path $PSScriptRoot 'fetch-ssms-libs.ps1')
+}
+
 $msbuild = Find-MSBuild
 Write-Host "Using MSBuild: $msbuild" -ForegroundColor Cyan
 Write-Host "Building $Configuration ..." -ForegroundColor Cyan

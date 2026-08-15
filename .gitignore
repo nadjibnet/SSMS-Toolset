@@ -45,3 +45,6 @@ Desktop.ini
 # Logs
 *.binlog
 *.log
+
+# Vendored Microsoft SSMS interop assemblies (copied locally, never redistributed)
+lib/

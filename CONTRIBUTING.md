@@ -20,6 +20,19 @@ Studio–style set of database tools to the Object Explorer.
   VSIX build targets come from the `Microsoft.VSSDK.BuildTools` NuGet package so
   contributor builds are reproducible without a specific IDE version.
 
+## SSMS interop assemblies
+
+The extension builds against two Microsoft assemblies from your SSMS 22 install
+(`SqlWorkbench.Interfaces.dll`, `SqlPackageBase.dll`). They are **not** committed
+to this repo (`lib/` is git-ignored) and are never packaged into the VSIX. Copy
+them locally once:
+
+```powershell
+./build/fetch-ssms-libs.ps1
+```
+
+`build.ps1` runs this automatically if `lib\Ssms22` is missing.
+
 ## Build & run
 
 See [`README.md`](README.md) for the current, phase-accurate build, install, and

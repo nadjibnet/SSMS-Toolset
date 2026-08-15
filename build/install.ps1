@@ -4,8 +4,10 @@
     Installs the SSMS-Toolset extension into SQL Server Management Studio 22.
 
 .DESCRIPTION
-    Extracts the VSIX payload (a zip) into the SSMS Extensions folder, then you
-    restart SSMS. Choose Current-User (no admin) or All-Users (admin, install dir).
+    Copies the VSIX payload into the SSMS Extensions folder, clears the SSMS
+    extension-discovery caches, and runs "Ssms.exe /updateconfiguration" so SSMS
+    actually picks up the extension. SSMS must be CLOSED while this runs.
+
     VSIXInstaller.exe is intentionally not used: it is not a reliable path for
     SSMS extensions.
 
@@ -15,10 +17,14 @@
 .PARAMETER VsixPath
     Path to the .vsix. Defaults to the newest under .\artifacts.
 
+.PARAMETER SkipUpdateConfiguration
+    Skip running Ssms.exe /updateconfiguration (cache is still cleared, so a
+    normal SSMS restart will pick up the change).
+
 .EXAMPLE
     ./build/install.ps1
     ./build/install.ps1 -Scope CurrentUser
-    ./build/install.ps1 -Scope AllUsers   # run from an elevated prompt
+    ./build/install.ps1 -Scope AllUsers    # from an elevated prompt
 #>
 [CmdletBinding()]
 param(
@@ -26,14 +32,18 @@ param(
     [string]$Scope,
 
     [string]$VsixPath,
-
-    # Advanced: override the Extensions root (e.g. non-default SSMS install path).
-    [string]$ExtensionsRoot
+    [string]$ExtensionsRoot,
+    [switch]$SkipUpdateConfiguration
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Import-Module (Join-Path $PSScriptRoot 'SsmsToolset.Extensions.psm1') -Force
+
+# 0. SSMS must be closed (caches are locked / rewritten while it runs).
+if (Test-SsmsRunning) {
+    throw "SSMS is currently running. Close all SSMS 22 windows, then re-run this script."
+}
 
 # 1. Locate the VSIX.
 if (-not $VsixPath) {
@@ -57,7 +67,6 @@ Write-Host ""
 $temp = Join-Path ([System.IO.Path]::GetTempPath()) ("SsmsToolset_" + [System.IO.Path]::GetRandomFileName())
 New-Item -ItemType Directory -Path $temp | Out-Null
 try {
-    # Copy to a .zip name so Expand-Archive accepts it.
     $zip = Join-Path $temp 'payload.zip'
     Copy-Item $VsixPath $zip -Force
     Expand-Archive -Path $zip -DestinationPath $temp -Force
@@ -69,7 +78,7 @@ try {
     }
     New-Item -ItemType Directory -Path $installDir | Out-Null
 
-    # Copy the extension files (skip VSIX packaging metadata that SSMS ignores).
+    # Copy the extension files (skip VSIX packaging metadata SSMS ignores).
     Get-ChildItem -Path $temp -Recurse -File |
         Where-Object { $_.Name -notin @('[Content_Types].xml') } |
         ForEach-Object {
@@ -83,7 +92,15 @@ try {
 finally {
     Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue
 }
+Write-Host "Files copied." -ForegroundColor Green
 
-Write-Host "Installed." -ForegroundColor Green
+# 4. Force SSMS to re-discover extensions.
+Write-Host "Clearing SSMS extension caches ..." -ForegroundColor Cyan
+Reset-SsmsExtensionCache
+if (-not $SkipUpdateConfiguration) {
+    Invoke-SsmsUpdateConfiguration
+}
+
 Write-Host ""
-Write-Host "Restart SSMS 22. Then look under the Tools menu for 'SSMS Toolset: Hello'." -ForegroundColor Yellow
+Write-Host "Installed." -ForegroundColor Green
+Write-Host "Start SSMS 22, then right-click a DATABASE in Object Explorer -> 'SSMS Toolset'." -ForegroundColor Yellow
