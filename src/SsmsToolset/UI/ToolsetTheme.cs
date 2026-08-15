@@ -17,7 +17,8 @@ namespace SsmsToolset.UI
             "T.Window", "T.Card", "T.Input", "T.Border", "T.Text", "T.TextMuted",
             "T.Accent", "T.Label", "T.BadgeBg", "T.BadgeFg", "T.HeaderBg", "T.HeaderFg",
             "T.AltRow", "T.GridLine", "T.AccentBtnBg", "T.AccentBtnFg",
-            "T.SubtleBtnBg", "T.SubtleBtnFg", "T.CodeText", "T.TabBg", "T.TabSelBg"
+            "T.SubtleBtnBg", "T.SubtleBtnFg", "T.CodeText", "T.TabBg", "T.TabSelBg",
+            "T.SelBg", "T.SelFg"
         };
 
         public static void Apply(FrameworkElement target, ToolsetThemeKind kind)
@@ -52,7 +53,9 @@ namespace SsmsToolset.UI
             ["T.SubtleBtnFg"]  = "#CCCCCC",
             ["T.CodeText"]     = "#CE9178",
             ["T.TabBg"]        = "#2D2D2D",
-            ["T.TabSelBg"]     = "#1E1E1E"
+            ["T.TabSelBg"]     = "#1E1E1E",
+            ["T.SelBg"]        = "#094771",
+            ["T.SelFg"]        = "#FFFFFF"
         };
 
         private static Dictionary<string, string> Light() => new Dictionary<string, string>
@@ -77,7 +80,9 @@ namespace SsmsToolset.UI
             ["T.SubtleBtnFg"]  = "#333333",
             ["T.CodeText"]     = "#A31515",
             ["T.TabBg"]        = "#E7E7E7",
-            ["T.TabSelBg"]     = "#FFFFFF"
+            ["T.TabSelBg"]     = "#FFFFFF",
+            ["T.SelBg"]        = "#ADD6FF",
+            ["T.SelFg"]        = "#000000"
         };
     }
 }

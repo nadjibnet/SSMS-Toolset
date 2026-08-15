@@ -26,7 +26,7 @@ namespace SsmsToolset
     [InstalledProductRegistration(
         productName: "SSMS Toolset",
         productDetails: "Azure Data Studio-style database tools for SQL Server Management Studio 22.",
-        productId: "0.1.2")]
+        productId: "0.1.3")]
     // Auto-load when the Object Explorer tool window is present (its well-known GUID).
     [ProvideAutoLoad(ObjectExplorerToolWindowGuid, PackageAutoLoadFlags.BackgroundLoad)]
     [Guid(PackageGuidString)]

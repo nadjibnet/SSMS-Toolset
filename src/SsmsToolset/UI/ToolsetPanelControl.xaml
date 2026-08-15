@@ -16,6 +16,14 @@
             <Setter Property="Foreground"  Value="{DynamicResource T.Text}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource T.Border}"/>
             <Setter Property="Padding"     Value="6,3,6,3"/>
+            <Style.Triggers>
+                <!-- Theme-aware selection so selected rows/cells stay readable. -->
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background"  Value="{DynamicResource T.SelBg}"/>
+                    <Setter Property="Foreground"  Value="{DynamicResource T.SelFg}"/>
+                    <Setter Property="BorderBrush" Value="{DynamicResource T.SelBg}"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <Style TargetType="TabItem">
