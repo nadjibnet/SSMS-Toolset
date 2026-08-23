@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Text;
 
@@ -16,6 +17,151 @@ namespace SsmsToolset.Data
 
         public static string SelectTop(DatabaseObject o, int count)
             => $"SELECT TOP ({count}) *\nFROM {Quote(o.Schema)}.{Quote(o.Name)};";
+
+        /// <summary>
+        /// A SELECT TOP N that lists every column explicitly (round-trips to the DB
+        /// for the column names). Falls back to <c>*</c> if none are found.
+        /// </summary>
+        public static string SelectTopAllColumns(string connectionString, DatabaseObject o, int count)
+        {
+            var columns = GetColumnNames(connectionString, o);
+            if (columns.Count == 0)
+            {
+                return SelectTop(o, count);
+            }
+
+            var sb = new StringBuilder();
+            sb.Append($"SELECT TOP ({count})\n");
+            for (int i = 0; i < columns.Count; i++)
+            {
+                sb.Append("    ").Append(Quote(columns[i]));
+                if (i < columns.Count - 1) { sb.Append(','); }
+                sb.Append('\n');
+            }
+            sb.Append($"FROM {Quote(o.Schema)}.{Quote(o.Name)};");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// An UPDATE that lists every column (round-trips to the DB). The whole
+        /// statement is commented out so it is never run by accident — the user
+        /// uncomments the columns they actually want to set. The WHERE clause is
+        /// keyed on the primary key (or the first column if there is none).
+        /// </summary>
+        public static string UpdateStatement(string connectionString, DatabaseObject o)
+        {
+            GetColumnsAndKeys(connectionString, o, out var columns, out var keys);
+
+            var sb = new StringBuilder();
+            sb.Append($"-- UPDATE {Quote(o.Schema)}.{Quote(o.Name)} SET\n");
+            if (columns.Count == 0)
+            {
+                sb.Append("--     [Column] = <value>\n");
+            }
+            else
+            {
+                for (int i = 0; i < columns.Count; i++)
+                {
+                    sb.Append("--     ").Append(Quote(columns[i])).Append(" = <value>");
+                    if (i < columns.Count - 1) { sb.Append(','); }
+                    sb.Append('\n');
+                }
+            }
+            sb.Append("-- WHERE ").Append(BuildWhere(keys, columns)).Append(';');
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// A DELETE with a WHERE clause keyed on the primary key (or the first
+        /// column if there is none) so it never deletes the whole table blindly.
+        /// </summary>
+        public static string DeleteStatement(string connectionString, DatabaseObject o)
+        {
+            GetColumnsAndKeys(connectionString, o, out var columns, out var keys);
+            return $"DELETE FROM {Quote(o.Schema)}.{Quote(o.Name)}\nWHERE {BuildWhere(keys, columns)};";
+        }
+
+        /// <summary>Builds a "[key] = &lt;value&gt; AND ..." predicate for UPDATE/DELETE.</summary>
+        private static string BuildWhere(List<string> keys, List<string> columns)
+        {
+            var cols = keys.Count > 0
+                ? keys
+                : (columns.Count > 0 ? new List<string> { columns[0] } : null);
+
+            if (cols == null)
+            {
+                return "[id] = <value>";
+            }
+
+            var parts = new List<string>();
+            foreach (var c in cols)
+            {
+                parts.Add($"{Quote(c)} = <value>");
+            }
+            return string.Join(" AND ", parts);
+        }
+
+        private static List<string> GetColumnNames(string connectionString, DatabaseObject o)
+        {
+            var names = new List<string>();
+            using (var connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                ReadColumnNames(connection, o, names);
+            }
+            return names;
+        }
+
+        /// <summary>Reads column names and primary-key columns in one connection.</summary>
+        private static void GetColumnsAndKeys(
+            string connectionString, DatabaseObject o, out List<string> columns, out List<string> keys)
+        {
+            columns = new List<string>();
+            keys = new List<string>();
+            using (var connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                ReadColumnNames(connection, o, columns);
+
+                const string pkQuery = @"
+SELECT c.name
+FROM sys.indexes i
+INNER JOIN sys.index_columns ic
+       ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+INNER JOIN sys.columns c
+       ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+WHERE i.is_primary_key = 1 AND i.object_id = OBJECT_ID(@fullName)
+ORDER BY ic.key_ordinal;";
+                using (var command = new SqlCommand(pkQuery, connection))
+                {
+                    command.Parameters.AddWithValue("@fullName", o.FullName);
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            keys.Add(reader.GetString(0));
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void ReadColumnNames(SqlConnection connection, DatabaseObject o, List<string> into)
+        {
+            using (var command = new SqlCommand(
+                "SELECT c.name FROM sys.columns c WHERE c.object_id = OBJECT_ID(@fullName) ORDER BY c.column_id;",
+                connection))
+            {
+                command.Parameters.AddWithValue("@fullName", o.FullName);
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        into.Add(reader.GetString(0));
+                    }
+                }
+            }
+        }
 
         /// <summary>Returns a CREATE script for the object (round-trips to the DB).</summary>
         public static string BuildCreateScript(string connectionString, DatabaseObject o)

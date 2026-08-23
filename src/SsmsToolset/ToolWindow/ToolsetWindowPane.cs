@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
 using Microsoft.VisualStudio;
@@ -33,25 +34,52 @@ namespace SsmsToolset.ToolWindow
         private const uint WS_VISIBLE = 0x10000000;
         private const uint WS_CLIPSIBLINGS = 0x04000000;
 
+        // Each distinct server+database gets its own tool-window instance id, so
+        // opening a second database gives a second panel rather than replacing the
+        // first. Re-opening the same server+database re-focuses its existing panel.
+        private static readonly Dictionary<string, uint> InstanceIds =
+            new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
+        private static uint _nextInstanceId = 1;
+
         private readonly string _database;
+        private readonly string _server;
         private readonly string _connectionString;
         private readonly Action<string> _openInSsmsQuery;
         private HwndSource _hwndSource;
 
-        private ToolsetWindowPane(string database, string connectionString, Action<string> openInSsmsQuery)
+        private ToolsetWindowPane(string database, string server, string connectionString, Action<string> openInSsmsQuery)
         {
             _database = database;
+            _server = server;
             _connectionString = connectionString;
             _openInSsmsQuery = openInSsmsQuery;
         }
 
+        private static uint InstanceIdFor(string server, string database)
+        {
+            string key = (server ?? string.Empty) + "\n" + (database ?? string.Empty);
+            if (!InstanceIds.TryGetValue(key, out uint id))
+            {
+                id = _nextInstanceId++;
+                InstanceIds[key] = id;
+            }
+            return id;
+        }
+
         /// <summary>
         /// Opens the panel as a dockable tool window bound to the given connection.
-        /// Falls back to a floating WPF window if the shell rejects the tool window.
+        /// Each server+database gets its own instance; re-opening the same one just
+        /// re-focuses it. Falls back to a floating WPF window if the shell rejects
+        /// the tool window.
         /// </summary>
-        public static void Open(string database, string connectionString, Action<string> openInSsmsQuery)
+        public static void Open(string database, string server, string connectionString, Action<string> openInSsmsQuery)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+
+            uint instanceId = InstanceIdFor(server, database);
+            string caption = string.IsNullOrEmpty(server)
+                ? $"SSMS Toolset — {database}"
+                : $"SSMS Toolset — {database} ({server})";
 
             try
             {
@@ -60,19 +88,30 @@ namespace SsmsToolset.ToolWindow
                     throw new InvalidOperationException("IVsUIShell not available.");
                 }
 
-                var pane = new ToolsetWindowPane(database, connectionString, openInSsmsQuery);
+                var slot = ToolWindowGuid;
+
+                // Already open for this server+database? Surface it instead of duplicating.
+                if (ErrorHandler.Succeeded(
+                        uiShell.FindToolWindowEx(0, ref slot, instanceId, out IVsWindowFrame existing))
+                    && existing != null)
+                {
+                    existing.Show();
+                    return;
+                }
+
+                var pane = new ToolsetWindowPane(database, server, connectionString, openInSsmsQuery);
                 var toolGuid = ToolWindowGuid;
                 var autoActivate = Guid.Empty;
 
                 int hr = uiShell.CreateToolWindow(
                     (uint)(__VSCREATETOOLWIN.CTW_fInitNew | __VSCREATETOOLWIN.CTW_fForceCreate),
-                    0,
+                    instanceId,
                     pane,
                     ref toolGuid,
-                    ref toolGuid,
+                    ref slot,
                     ref autoActivate,
                     null,
-                    $"SSMS Toolset — {database}",
+                    caption,
                     null,
                     out IVsWindowFrame frame);
 
@@ -91,11 +130,11 @@ namespace SsmsToolset.ToolWindow
             {
                 new System.Windows.Window
                 {
-                    Title = $"SSMS Toolset — {database}",
+                    Title = caption,
                     Width = 900,
                     Height = 640,
                     WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen,
-                    Content = new ToolsetPanelControl(database, connectionString, openInSsmsQuery)
+                    Content = new ToolsetPanelControl(database, server, connectionString, openInSsmsQuery)
                 }.Show();
             }
         }
@@ -118,7 +157,7 @@ namespace SsmsToolset.ToolWindow
 
             _hwndSource = new HwndSource(parameters)
             {
-                RootVisual = new ToolsetPanelControl(_database, _connectionString, _openInSsmsQuery)
+                RootVisual = new ToolsetPanelControl(_database, _server, _connectionString, _openInSsmsQuery)
             };
 
             hwnd = _hwndSource.Handle;

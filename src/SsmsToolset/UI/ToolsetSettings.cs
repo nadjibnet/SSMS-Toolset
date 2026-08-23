@@ -29,6 +29,7 @@ namespace SsmsToolset.UI
         private static bool _showViews = true;
         private static bool _showProcedures = true;
         private static bool _showFunctions = true;
+        private static bool _showColumnsParams;
 
         static ToolsetSettings()
         {
@@ -69,6 +70,16 @@ namespace SsmsToolset.UI
         {
             get => _showFunctions;
             set => Set(ref _showFunctions, value);
+        }
+
+        /// <summary>
+        /// Whether to load and show the (potentially slow) "Columns/Params" column.
+        /// Off by default so a normal object load stays fast.
+        /// </summary>
+        public static bool ShowColumnsParams
+        {
+            get => _showColumnsParams;
+            set => Set(ref _showColumnsParams, value);
         }
 
         private static void Set<T>(ref T field, T value)
@@ -125,6 +136,9 @@ namespace SsmsToolset.UI
                         case "showfunctions":
                             if (bool.TryParse(value, out bool f)) _showFunctions = f;
                             break;
+                        case "showcolumnsparams":
+                            if (bool.TryParse(value, out bool cp)) _showColumnsParams = cp;
+                            break;
                     }
                 }
             }
@@ -150,7 +164,8 @@ namespace SsmsToolset.UI
                     $"ShowTables={_showTables}\r\n" +
                     $"ShowViews={_showViews}\r\n" +
                     $"ShowProcedures={_showProcedures}\r\n" +
-                    $"ShowFunctions={_showFunctions}\r\n";
+                    $"ShowFunctions={_showFunctions}\r\n" +
+                    $"ShowColumnsParams={_showColumnsParams}\r\n";
                 File.WriteAllText(SettingsPath, contents);
             }
             catch

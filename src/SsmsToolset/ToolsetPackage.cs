@@ -1,4 +1,5 @@
 using System;
+using System.Data.SqlClient;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -26,7 +27,7 @@ namespace SsmsToolset
     [InstalledProductRegistration(
         productName: "SSMS Toolset",
         productDetails: "Azure Data Studio-style database tools for SQL Server Management Studio 22.",
-        productId: "0.1.3")]
+        productId: "0.1.5")]
     // Auto-load when the Object Explorer tool window is present (its well-known GUID).
     [ProvideAutoLoad(ObjectExplorerToolWindowGuid, PackageAutoLoadFlags.BackgroundLoad)]
     [Guid(PackageGuidString)]
@@ -83,15 +84,18 @@ namespace SsmsToolset
                 return;
             }
 
-            // Only show on Database nodes. A database node's URN path ends in ".../Database".
+            // Only show on Database nodes — never on tables, views, or any other
+            // object that lives *under* a database (those all contain "Database"
+            // in their URN path, so a substring test is not enough).
             var node = nodes[0];
-            if (string.IsNullOrEmpty(node.UrnPath) || !node.UrnPath.Contains("Database"))
+            if (!IsDatabaseNode(node.UrnPath))
             {
                 return;
             }
 
             string database = node.InvariantName;
             string connectionString = SsmsConnectionResolver.BuildConnectionString(node, database);
+            string server = GetServerName(connectionString);
 
             // Capture the node so the click handler can open a native SSMS query bound
             // to this database (see SsmsQueryLauncher).
@@ -102,14 +106,14 @@ namespace SsmsToolset
                 ForeColor = _tree.ForeColor,
                 BackColor = _tree.BackColor
             };
-            item.Click += (s, args) => OpenPanel(database, connectionString, selectedNode);
+            item.Click += (s, args) => OpenPanel(database, server, connectionString, selectedNode);
 
             _tree.ContextMenuStrip.Items.Add(new ToolStripSeparator());
             _tree.ContextMenuStrip.Items.Add(item);
             _tree.ContextMenuStrip.Items.Add(new ToolStripSeparator());
         }
 
-        private void OpenPanel(string database, string connectionString, INodeInformation node)
+        private void OpenPanel(string database, string server, string connectionString, INodeInformation node)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
@@ -119,7 +123,51 @@ namespace SsmsToolset
                 openInSsmsQuery = sql => SsmsQueryLauncher.OpenNewQuery(node, sql);
             }
 
-            ToolsetWindowPane.Open(database, connectionString, openInSsmsQuery);
+            ToolsetWindowPane.Open(database, server, connectionString, openInSsmsQuery);
+        }
+
+        /// <summary>
+        /// True only when the node is a database itself, not an object beneath one.
+        /// The URN path is a slash-separated type path (e.g. <c>Server/Database</c>);
+        /// object nodes append further segments (<c>Server/Database/Table</c>), so we
+        /// require the final segment to be exactly "Database".
+        /// </summary>
+        private static bool IsDatabaseNode(string urnPath)
+        {
+            if (string.IsNullOrEmpty(urnPath))
+            {
+                return false;
+            }
+
+            int slash = urnPath.LastIndexOf('/');
+            string last = slash >= 0 ? urnPath.Substring(slash + 1) : urnPath;
+
+            // Drop any attribute predicate, e.g. "Database[@Name='x']" -> "Database".
+            int bracket = last.IndexOf('[');
+            if (bracket >= 0)
+            {
+                last = last.Substring(0, bracket);
+            }
+
+            return string.Equals(last, "Database", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Extracts the server name from a connection string, for window identity.</summary>
+        private static string GetServerName(string connectionString)
+        {
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                return null;
+            }
+
+            try
+            {
+                return new SqlConnectionStringBuilder(connectionString).DataSource;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

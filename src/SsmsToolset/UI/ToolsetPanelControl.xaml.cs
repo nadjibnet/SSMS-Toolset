@@ -39,14 +39,16 @@ namespace SsmsToolset.UI
         /// <summary>Wired by the host after the frame is shown; docks the tool window.</summary>
         public Action DockAction { get; set; }
 
-        public ToolsetPanelControl(string databaseName, string connectionString, Action<string> openInSsmsQuery = null)
+        public ToolsetPanelControl(string databaseName, string serverName, string connectionString, Action<string> openInSsmsQuery = null)
         {
             _connectionString = connectionString;
             _openInSsmsQuery = openInSsmsQuery;
 
             InitializeComponent();
             ToolsetTheme.Apply(this, ToolsetSettings.Theme);
-            DatabaseBadge.Text = databaseName;
+            DatabaseBadge.Text = string.IsNullOrEmpty(serverName)
+                ? databaseName
+                : $"{databaseName} @ {serverName}";
 
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             VersionText.Text = $"v{version.Major}.{version.Minor}.{version.Build}";
@@ -62,6 +64,7 @@ namespace SsmsToolset.UI
             ToggleFunctions.IsChecked = ToolsetSettings.ShowFunctions;
             _suppressToggle = false;
 
+            ApplyColumnsParamsVisibility();
             LoadObjectsAsync();
         }
 
@@ -117,6 +120,30 @@ namespace SsmsToolset.UI
             TargetSsmsItem.IsEnabled = _openInSsmsQuery != null;
             TargetToolsetItem.IsChecked = ToolsetSettings.QueryTarget == QueryTarget.ToolsetTab;
             TargetSsmsItem.IsChecked = ToolsetSettings.QueryTarget == QueryTarget.NewSsmsQuery;
+
+            ShowColumnsItem.IsChecked = ToolsetSettings.ShowColumnsParams;
+        }
+
+        private void ShowColumns_Click(object sender, RoutedEventArgs e)
+        {
+            bool enabled = ShowColumnsItem.IsChecked == true;
+            ToolsetSettings.ShowColumnsParams = enabled;
+            ApplyColumnsParamsVisibility();
+
+            // Turning it on requires the extra column/parameter queries, so reload.
+            if (enabled)
+            {
+                LoadObjectsAsync();
+            }
+        }
+
+        private void ApplyColumnsParamsVisibility()
+        {
+            if (ColumnsParamsColumn != null)
+            {
+                ColumnsParamsColumn.Visibility =
+                    ToolsetSettings.ShowColumnsParams ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private void ThemeDark_Click(object sender, RoutedEventArgs e) => SetTheme(ToolsetThemeKind.Dark);
@@ -146,11 +173,10 @@ namespace SsmsToolset.UI
         private static DatabaseObject TargetOf(object sender)
             => (sender as FrameworkElement)?.DataContext as DatabaseObject;
 
-        private void SelectTop100_Click(object sender, RoutedEventArgs e) => SelectTop(TargetOf(sender), 100);
-        private void SelectTop1000_Click(object sender, RoutedEventArgs e) => SelectTop(TargetOf(sender), 1000);
-
-        private void SelectTop(DatabaseObject target, int count)
+        // "Select Top 100 *": plain SELECT TOP (100) *.
+        private void SelectTop100_Click(object sender, RoutedEventArgs e)
         {
+            var target = TargetOf(sender);
             if (target == null)
             {
                 return;
@@ -158,12 +184,81 @@ namespace SsmsToolset.UI
 
             if (!SqlScriptGenerator.SupportsSelectTop(target))
             {
-                MainTabs.SelectedIndex = 1;
-                InputBox.Text = $"-- Select Top applies to tables and views, not {target.TypeLabel.ToLowerInvariant()}s.";
+                ShowSelectTopUnsupported(target);
                 return;
             }
 
-            DeliverSql(SqlScriptGenerator.SelectTop(target, count), executeInToolset: true);
+            DeliverSql(SqlScriptGenerator.SelectTop(target, 100), executeInToolset: true);
+        }
+
+        // "Select Top 1000 (all columns)": explicit column list (round-trips to the DB).
+        private async void SelectTop1000_Click(object sender, RoutedEventArgs e)
+        {
+            var target = TargetOf(sender);
+            if (target == null)
+            {
+                return;
+            }
+
+            if (!SqlScriptGenerator.SupportsSelectTop(target))
+            {
+                ShowSelectTopUnsupported(target);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(_connectionString))
+            {
+                return;
+            }
+
+            try
+            {
+                string sql = await Task.Run(
+                    () => SqlScriptGenerator.SelectTopAllColumns(_connectionString, target, 1000));
+                DeliverSql(sql, executeInToolset: true);
+            }
+            catch (Exception ex)
+            {
+                MainTabs.SelectedIndex = 1;
+                InputBox.Text = $"-- Failed to build SELECT for {target.FullName}: {ex.Message}";
+            }
+        }
+
+        private void ShowSelectTopUnsupported(DatabaseObject target)
+        {
+            MainTabs.SelectedIndex = 1;
+            InputBox.Text = $"-- Select Top applies to tables and views, not {target.TypeLabel.ToLowerInvariant()}s.";
+        }
+
+        // "Update (all columns, commented)": a fully commented-out UPDATE template.
+        private async void Update_Click(object sender, RoutedEventArgs e)
+            => await BuildModifyScript(TargetOf(sender), o => SqlScriptGenerator.UpdateStatement(_connectionString, o));
+
+        // "Delete from (WHERE key)": a DELETE keyed on the primary key.
+        private async void Delete_Click(object sender, RoutedEventArgs e)
+            => await BuildModifyScript(TargetOf(sender), o => SqlScriptGenerator.DeleteStatement(_connectionString, o));
+
+        /// <summary>
+        /// Shared runner for UPDATE/DELETE: builds the SQL off the UI thread and
+        /// drops it into the target destination — never executing it.
+        /// </summary>
+        private async Task BuildModifyScript(DatabaseObject target, Func<DatabaseObject, string> build)
+        {
+            if (target == null || !target.IsTabular || string.IsNullOrEmpty(_connectionString))
+            {
+                return;
+            }
+
+            try
+            {
+                string sql = await Task.Run(() => build(target));
+                DeliverSql(sql, executeInToolset: false);
+            }
+            catch (Exception ex)
+            {
+                MainTabs.SelectedIndex = 1;
+                InputBox.Text = $"-- Failed to build statement for {target.FullName}: {ex.Message}";
+            }
         }
 
         private async void ScriptCreate_Click(object sender, RoutedEventArgs e)
@@ -233,7 +328,8 @@ namespace SsmsToolset.UI
                     ToolsetSettings.ShowTables,
                     ToolsetSettings.ShowViews,
                     ToolsetSettings.ShowProcedures,
-                    ToolsetSettings.ShowFunctions));
+                    ToolsetSettings.ShowFunctions,
+                    ToolsetSettings.ShowColumnsParams));
 
                 _objects.Clear();
                 foreach (var item in loaded)

@@ -126,6 +126,10 @@
                             <MenuItem Header="Open query in" IsEnabled="False"/>
                             <MenuItem x:Name="TargetToolsetItem" Header="Toolset query tab" IsCheckable="True" Click="TargetToolset_Click"/>
                             <MenuItem x:Name="TargetSsmsItem"    Header="New SSMS query"    IsCheckable="True" Click="TargetSsms_Click"/>
+                            <Separator/>
+                            <MenuItem Header="Objects list" IsEnabled="False"/>
+                            <MenuItem x:Name="ShowColumnsItem" Header="Show Columns/Params column (slower load)"
+                                      IsCheckable="True" Click="ShowColumns_Click"/>
                         </ContextMenu>
                     </Button.ContextMenu>
                 </Button>
@@ -196,14 +200,17 @@
                                   RowBackground="{DynamicResource T.Input}" AlternatingRowBackground="{DynamicResource T.AltRow}"
                                   GridLinesVisibility="Horizontal"
                                   HorizontalGridLinesBrush="{DynamicResource T.GridLine}"
-                                  SelectionMode="Extended"
+                                  SelectionMode="Single"
                                   HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                                   ColumnHeaderStyle="{StaticResource HeaderStyle}"
                                   CellStyle="{StaticResource CellStyle}">
                             <DataGrid.Resources>
                                 <ContextMenu x:Key="RowMenu">
-                                    <MenuItem Header="Select Top 100"  Click="SelectTop100_Click"/>
-                                    <MenuItem Header="Select Top 1000" Click="SelectTop1000_Click"/>
+                                    <MenuItem Header="Select Top 100 *"  Click="SelectTop100_Click" IsEnabled="{Binding IsTabular}"/>
+                                    <MenuItem Header="Select Top 1000 (all columns)" Click="SelectTop1000_Click" IsEnabled="{Binding IsTabular}"/>
+                                    <Separator/>
+                                    <MenuItem Header="Update (all columns, commented)" Click="Update_Click" IsEnabled="{Binding IsTabular}"/>
+                                    <MenuItem Header="Delete from (WHERE key)" Click="Delete_Click" IsEnabled="{Binding IsTabular}"/>
                                     <Separator/>
                                     <MenuItem Header="Script as CREATE" Click="ScriptCreate_Click"/>
                                 </ContextMenu>
@@ -217,6 +224,15 @@
                                 <DataGridTextColumn Header="Type"   Binding="{Binding TypeLabel}" Width="110"/>
                                 <DataGridTextColumn Header="Schema" Binding="{Binding Schema}"    Width="120"/>
                                 <DataGridTextColumn Header="Name"   Binding="{Binding Name}"      Width="*"/>
+                                <DataGridTextColumn x:Name="ColumnsParamsColumn"
+                                                    Header="Columns/Params" Binding="{Binding ColumnsOrParams}" Width="2*">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                            <Setter Property="ToolTip" Value="{Binding ColumnsOrParams}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>
