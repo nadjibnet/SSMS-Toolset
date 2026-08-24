@@ -211,6 +211,7 @@
                                     <Separator/>
                                     <MenuItem Header="Update (all columns, commented)" Click="Update_Click" IsEnabled="{Binding IsTabular}"/>
                                     <MenuItem Header="Delete from (WHERE key)" Click="Delete_Click" IsEnabled="{Binding IsTabular}"/>
+                                    <MenuItem Header="Execute (with parameters)" Click="Exec_Click" IsEnabled="{Binding IsExecutable}"/>
                                     <Separator/>
                                     <MenuItem Header="Script as CREATE" Click="ScriptCreate_Click"/>
                                 </ContextMenu>

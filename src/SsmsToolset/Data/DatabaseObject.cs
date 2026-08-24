@@ -31,6 +31,14 @@ namespace SsmsToolset.Data
         /// </summary>
         public bool IsTabular => TypeCode == "U" || TypeCode == "V";
 
+        /// <summary>
+        /// True for procedures and functions — objects that can be invoked, so the
+        /// "Execute (with parameters)" action applies.
+        /// </summary>
+        public bool IsExecutable =>
+            TypeCode == "P" || TypeCode == "FN" || TypeCode == "IF" ||
+            TypeCode == "TF" || TypeCode == "FS" || TypeCode == "FT" || TypeCode == "AF";
+
         /// <summary>Normalized (lower-cased, accent-stripped) key used for searching.</summary>
         public string SearchKey { get; set; }
     }

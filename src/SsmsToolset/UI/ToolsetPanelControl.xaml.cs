@@ -238,6 +238,27 @@ namespace SsmsToolset.UI
         private async void Delete_Click(object sender, RoutedEventArgs e)
             => await BuildModifyScript(TargetOf(sender), o => SqlScriptGenerator.DeleteStatement(_connectionString, o));
 
+        // "Execute (with parameters)": an EXEC / SELECT template for procs/functions.
+        private async void Exec_Click(object sender, RoutedEventArgs e)
+        {
+            var target = TargetOf(sender);
+            if (target == null || !target.IsExecutable || string.IsNullOrEmpty(_connectionString))
+            {
+                return;
+            }
+
+            try
+            {
+                string sql = await Task.Run(() => SqlScriptGenerator.ExecTemplate(_connectionString, target));
+                DeliverSql(sql, executeInToolset: false);
+            }
+            catch (Exception ex)
+            {
+                MainTabs.SelectedIndex = 1;
+                InputBox.Text = $"-- Failed to build EXEC template for {target.FullName}: {ex.Message}";
+            }
+        }
+
         /// <summary>
         /// Shared runner for UPDATE/DELETE: builds the SQL off the UI thread and
         /// drops it into the target destination — never executing it.

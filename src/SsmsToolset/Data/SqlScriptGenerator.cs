@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Linq;
 using System.Text;
 
 namespace SsmsToolset.Data
@@ -79,6 +80,84 @@ namespace SsmsToolset.Data
         {
             GetColumnsAndKeys(connectionString, o, out var columns, out var keys);
             return $"DELETE FROM {Quote(o.Schema)}.{Quote(o.Name)}\nWHERE {BuildWhere(keys, columns)};";
+        }
+
+        /// <summary>
+        /// A ready-to-fill invocation template (round-trips to the DB for the
+        /// parameter list): <c>EXEC</c> for procedures, <c>SELECT ... FROM fn(...)</c>
+        /// for table-valued functions, and <c>SELECT fn(...)</c> for scalar ones.
+        /// Placeholders show the parameter's data type; the template is not executed.
+        /// </summary>
+        public static string ExecTemplate(string connectionString, DatabaseObject o)
+        {
+            var parameters = GetParameters(connectionString, o);
+            string obj = $"{Quote(o.Schema)}.{Quote(o.Name)}";
+
+            if (o.TypeCode == "P")
+            {
+                if (parameters.Count == 0)
+                {
+                    return $"EXEC {obj};";
+                }
+
+                var sb = new StringBuilder();
+                sb.Append($"EXEC {obj}\n");
+                for (int i = 0; i < parameters.Count; i++)
+                {
+                    var p = parameters[i];
+                    sb.Append("    ").Append(p.Name).Append(" = <").Append(p.Type).Append('>');
+                    if (p.IsOutput) { sb.Append(" OUTPUT"); }
+                    if (i < parameters.Count - 1) { sb.Append(','); }
+                    sb.Append('\n');
+                }
+                sb.Append(';');
+                return sb.ToString();
+            }
+
+            // Functions take positional arguments.
+            string args = string.Join(", ", parameters.Select(p => $"<{p.Name.TrimStart('@')}>"));
+            bool tableValued = o.TypeCode == "IF" || o.TypeCode == "TF" || o.TypeCode == "FT";
+            return tableValued
+                ? $"SELECT *\nFROM {obj}({args});"
+                : $"SELECT {obj}({args}) AS Result;";
+        }
+
+        private sealed class ParamInfo
+        {
+            public string Name { get; set; }
+            public string Type { get; set; }
+            public bool IsOutput { get; set; }
+        }
+
+        private static List<ParamInfo> GetParameters(string connectionString, DatabaseObject o)
+        {
+            var parameters = new List<ParamInfo>();
+            using (var connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                const string query = @"
+SELECT p.name, TYPE_NAME(p.user_type_id) AS type_name, p.is_output
+FROM sys.parameters p
+WHERE p.object_id = OBJECT_ID(@fullName) AND p.parameter_id > 0 AND p.name <> ''
+ORDER BY p.parameter_id;";
+                using (var command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@fullName", o.FullName);
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            parameters.Add(new ParamInfo
+                            {
+                                Name = reader.GetString(0),
+                                Type = reader.IsDBNull(1) ? "sql_variant" : reader.GetString(1),
+                                IsOutput = !reader.IsDBNull(2) && reader.GetBoolean(2)
+                            });
+                        }
+                    }
+                }
+            }
+            return parameters;
         }
 
         /// <summary>Builds a "[key] = &lt;value&gt; AND ..." predicate for UPDATE/DELETE.</summary>
