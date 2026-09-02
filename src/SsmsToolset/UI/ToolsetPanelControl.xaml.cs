@@ -3,7 +3,10 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -30,6 +33,9 @@ namespace SsmsToolset.UI
 
         /// <summary>Host callback that opens a new native SSMS query with the given SQL.</summary>
         private readonly Action<string> _openInSsmsQuery;
+
+        /// <summary>The most recent Query-tab result, kept so it can be exported.</summary>
+        private DataTable _lastResult;
 
         private readonly ObservableCollection<DatabaseObject> _objects = new ObservableCollection<DatabaseObject>();
         private ICollectionView _objectsView;
@@ -416,6 +422,8 @@ namespace SsmsToolset.UI
 
             StatusText.Visibility = Visibility.Collapsed;
             ResultGrid.ItemsSource = null;
+            _lastResult = null;
+            UpdateExportState();
 
             if (string.IsNullOrEmpty(_connectionString))
             {
@@ -425,6 +433,7 @@ namespace SsmsToolset.UI
 
             try
             {
+                var stopwatch = Stopwatch.StartNew();
                 using (var conn = new SqlConnection(_connectionString))
                 {
                     conn.Open();
@@ -432,15 +441,80 @@ namespace SsmsToolset.UI
                     {
                         var table = new DataTable();
                         adapter.Fill(table);
+                        stopwatch.Stop();
+
+                        _lastResult = table;
                         ResultGrid.ItemsSource = table.DefaultView;
+                        UpdateExportState();
+
                         string rows = table.Rows.Count == 1 ? "1 row" : $"{table.Rows.Count} rows";
-                        ShowStatus($"{rows} returned.", isError: false);
+                        ShowStatus($"{rows} returned in {stopwatch.ElapsedMilliseconds} ms.", isError: false);
                     }
                 }
             }
             catch (Exception ex)
             {
                 ShowStatus(ex.Message, isError: true);
+            }
+        }
+
+        // ── Result export ───────────────────────────────────────────────────
+
+        private void UpdateExportState()
+        {
+            bool hasData = _lastResult != null && _lastResult.Columns.Count > 0;
+            ExportCsvBtn.IsEnabled = hasData;
+            CopyResultsBtn.IsEnabled = hasData;
+        }
+
+        private void CopyResults_Click(object sender, RoutedEventArgs e)
+        {
+            if (_lastResult == null)
+            {
+                return;
+            }
+
+            try
+            {
+                Clipboard.SetText(TabularExporter.ToDelimited(_lastResult, "\t"));
+                ShowStatus($"Copied {_lastResult.Rows.Count} row(s) to the clipboard.", isError: false);
+            }
+            catch (Exception ex)
+            {
+                ShowStatus("Copy failed: " + ex.Message, isError: true);
+            }
+        }
+
+        private void ExportCsv_Click(object sender, RoutedEventArgs e)
+        {
+            if (_lastResult == null)
+            {
+                return;
+            }
+
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "CSV file (*.csv)|*.csv|All files (*.*)|*.*",
+                FileName = "query-results.csv",
+                AddExtension = true,
+                DefaultExt = ".csv"
+            };
+
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            try
+            {
+                string csv = TabularExporter.ToDelimited(_lastResult, ",");
+                // UTF-8 with BOM so Excel opens non-ASCII data correctly.
+                File.WriteAllText(dialog.FileName, csv, new UTF8Encoding(true));
+                ShowStatus($"Exported {_lastResult.Rows.Count} row(s) to {dialog.FileName}", isError: false);
+            }
+            catch (Exception ex)
+            {
+                ShowStatus("Export failed: " + ex.Message, isError: true);
             }
         }
 

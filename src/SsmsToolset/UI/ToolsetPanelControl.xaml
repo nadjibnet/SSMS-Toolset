@@ -278,7 +278,18 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="Results" Foreground="{DynamicResource T.Label}" FontSize="12" Margin="0,0,0,8"/>
+                            <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <Button x:Name="CopyResultsBtn" Content="Copy" Style="{StaticResource ToolBtn}"
+                                            IsEnabled="False" Click="CopyResults_Click"
+                                            ToolTip="Copy results to the clipboard (tab-separated)"/>
+                                    <Button x:Name="ExportCsvBtn" Content="Export CSV" Style="{StaticResource ToolBtn}"
+                                            Margin="6,0,0,0" IsEnabled="False" Click="ExportCsv_Click"
+                                            ToolTip="Export results to a CSV file"/>
+                                </StackPanel>
+                                <TextBlock Text="Results" Foreground="{DynamicResource T.Label}" FontSize="12"
+                                           VerticalAlignment="Center"/>
+                            </DockPanel>
                             <TextBlock x:Name="StatusText" Grid.Row="1" FontSize="12"
                                        TextWrapping="Wrap" Margin="0,0,0,6" Visibility="Collapsed"/>
                             <DataGrid x:Name="ResultGrid" Grid.Row="2"
