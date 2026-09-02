@@ -174,19 +174,34 @@
                             <ToggleButton x:Name="ToggleViews"      Content="Views"      Style="{StaticResource TypeToggle}" Click="TypeToggle_Click"/>
                             <ToggleButton x:Name="ToggleProcedures" Content="Procedures" Style="{StaticResource TypeToggle}" Click="TypeToggle_Click"/>
                             <ToggleButton x:Name="ToggleFunctions"  Content="Functions"  Style="{StaticResource TypeToggle}" Click="TypeToggle_Click"/>
+                            <Button x:Name="SamplesBtn" Content="Samples &#x25BE;" Style="{StaticResource ToolBtn}"
+                                    Margin="14,0,0,0" Click="SamplesBtn_Click"
+                                    ToolTip="Ready-made sample queries">
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Show Migrations" Click="ShowMigrations_Click"/>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
                         </StackPanel>
 
-                        <Grid Grid.Row="1" Margin="0,0,0,8">
-                            <TextBox x:Name="SearchBox"
-                                     Background="{DynamicResource T.Input}" Foreground="{DynamicResource T.Text}"
-                                     BorderBrush="{DynamicResource T.Border}" BorderThickness="1" Padding="8,6"
-                                     FontSize="13" TextChanged="SearchBox_TextChanged"/>
-                            <TextBlock x:Name="SearchPlaceholder"
-                                       Text="Search objects (accent-insensitive)..."
-                                       Foreground="{DynamicResource T.TextMuted}" FontSize="13"
-                                       Margin="10,0,0,0" IsHitTestVisible="False"
-                                       VerticalAlignment="Center"/>
-                        </Grid>
+                        <DockPanel Grid.Row="1" Margin="0,0,0,8">
+                            <ToggleButton x:Name="SearchInDefinitions" DockPanel.Dock="Right"
+                                          Content="In definitions" Style="{StaticResource TypeToggle}"
+                                          Margin="8,0,0,0" Click="SearchMode_Click"
+                                          ToolTip="Search inside view / procedure / function bodies"/>
+                            <Grid>
+                                <TextBox x:Name="SearchBox"
+                                         Background="{DynamicResource T.Input}" Foreground="{DynamicResource T.Text}"
+                                         BorderBrush="{DynamicResource T.Border}" BorderThickness="1" Padding="8,6"
+                                         FontSize="13" TextChanged="SearchBox_TextChanged"/>
+                                <TextBlock x:Name="SearchPlaceholder"
+                                           Text="Search objects (accent-insensitive)..."
+                                           Foreground="{DynamicResource T.TextMuted}" FontSize="13"
+                                           Margin="10,0,0,0" IsHitTestVisible="False"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </DockPanel>
 
                         <TextBlock x:Name="ObjectsStatus" Grid.Row="2"
                                    Foreground="{DynamicResource T.TextMuted}" FontSize="12" Margin="2,0,0,8"/>
@@ -224,9 +239,10 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Type"   Binding="{Binding TypeLabel}" Width="110"/>
                                 <DataGridTextColumn Header="Schema" Binding="{Binding Schema}"    Width="120"/>
-                                <DataGridTextColumn Header="Name"   Binding="{Binding Name}"      Width="*"/>
+                                <DataGridTextColumn Header="Name"   Binding="{Binding Name}"      Width="Auto" MinWidth="160"/>
                                 <DataGridTextColumn x:Name="ColumnsParamsColumn"
-                                                    Header="Columns/Params" Binding="{Binding ColumnsOrParams}" Width="2*">
+                                                    Header="Columns/Params" Binding="{Binding ColumnsOrParams}"
+                                                    Width="Auto" MinWidth="200" MaxWidth="900">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>

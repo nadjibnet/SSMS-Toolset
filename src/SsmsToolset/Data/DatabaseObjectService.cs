@@ -148,6 +148,74 @@ ORDER BY p.object_id, p.parameter_id;";
             }
         }
 
+        /// <summary>
+        /// Finds programmable objects (views, procedures, functions) whose T-SQL
+        /// body contains <paramref name="term"/>, via <c>sys.sql_modules</c>. Only
+        /// the enabled programmable types are searched; tables have no body.
+        /// </summary>
+        public static List<DatabaseObject> SearchDefinitions(
+            string connectionString,
+            string term,
+            bool views,
+            bool procedures,
+            bool functions)
+        {
+            var typeCodes = new List<string>();
+            if (views) typeCodes.Add("'V'");
+            if (procedures) typeCodes.Add("'P'");
+            if (functions) typeCodes.AddRange(new[] { "'FN'", "'IF'", "'TF'" });
+
+            var results = new List<DatabaseObject>();
+            if (typeCodes.Count == 0 || string.IsNullOrWhiteSpace(term))
+            {
+                return results;
+            }
+
+            string query = $@"
+SELECT s.name AS SchemaName, o.name AS ObjectName, o.type AS TypeCode, o.object_id AS ObjectId
+FROM sys.sql_modules AS m
+INNER JOIN sys.objects AS o ON o.object_id = m.object_id
+INNER JOIN sys.schemas AS s ON s.schema_id = o.schema_id
+WHERE o.is_ms_shipped = 0
+  AND o.type IN ({string.Join(",", typeCodes)})
+  AND m.definition LIKE @pattern ESCAPE '\'
+ORDER BY s.name, o.name;";
+
+            using (var connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                using (var command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@pattern", "%" + EscapeLike(term) + "%");
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            string schema = reader.GetString(0);
+                            string name = reader.GetString(1);
+                            string typeCode = reader.GetString(2).Trim();
+                            int objectId = reader.GetInt32(3);
+                            results.Add(new DatabaseObject
+                            {
+                                Schema = schema,
+                                Name = name,
+                                ObjectId = objectId,
+                                TypeCode = typeCode,
+                                TypeLabel = LabelFor(typeCode),
+                                SearchKey = TextNormalizer.Normalize($"{schema}.{name}")
+                            });
+                        }
+                    }
+                }
+            }
+
+            return results;
+        }
+
+        /// <summary>Escapes LIKE metacharacters so the term matches literally (ESCAPE '\').</summary>
+        private static string EscapeLike(string value)
+            => value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_").Replace("[", "\\[");
+
         private static string LabelFor(string typeCode)
         {
             switch (typeCode)

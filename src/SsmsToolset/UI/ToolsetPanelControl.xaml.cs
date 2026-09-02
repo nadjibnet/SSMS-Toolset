@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
@@ -9,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
@@ -38,9 +40,19 @@ namespace SsmsToolset.UI
         private DataTable _lastResult;
 
         private readonly ObservableCollection<DatabaseObject> _objects = new ObservableCollection<DatabaseObject>();
+
+        /// <summary>Full loaded inventory; the grid shows this (name mode) or definition-search hits.</summary>
+        private readonly List<DatabaseObject> _inventory = new List<DatabaseObject>();
+
         private ICollectionView _objectsView;
         private string _searchTerm = string.Empty;
         private bool _suppressToggle;
+
+        /// <summary>When true the search box queries object bodies instead of filtering by name.</summary>
+        private bool _searchInDefinitions;
+
+        /// <summary>Restarted on each keystroke; fires the search 500 ms after typing stops.</summary>
+        private DispatcherTimer _searchDebounce;
 
         /// <summary>Wired by the host after the frame is shown; docks the tool window.</summary>
         public Action DockAction { get; set; }
@@ -63,6 +75,9 @@ namespace SsmsToolset.UI
             _objectsView.Filter = FilterObject;
             ObjectsGrid.ItemsSource = _objectsView;
 
+            _searchDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+            _searchDebounce.Tick += (s, e) => { _searchDebounce.Stop(); RunSearch(); };
+
             _suppressToggle = true;
             ToggleTables.IsChecked = ToolsetSettings.ShowTables;
             ToggleViews.IsChecked = ToolsetSettings.ShowViews;
@@ -77,6 +92,33 @@ namespace SsmsToolset.UI
         // ── Toolbar: refresh + type toggles ─────────────────────────────────
 
         private void RefreshBtn_Click(object sender, RoutedEventArgs e) => LoadObjectsAsync();
+
+        private void SamplesBtn_Click(object sender, RoutedEventArgs e)
+        {
+            SamplesBtn.ContextMenu.PlacementTarget = SamplesBtn;
+            SamplesBtn.ContextMenu.Placement = PlacementMode.Bottom;
+            SamplesBtn.ContextMenu.IsOpen = true;
+        }
+
+        // Samples -> "Show Migrations": SELECT TOP 10 per table containing "Migration".
+        private async void ShowMigrations_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(_connectionString))
+            {
+                return;
+            }
+
+            try
+            {
+                string sql = await Task.Run(() => SqlScriptGenerator.BuildMigrationSamples(_connectionString));
+                DeliverSql(sql, executeInToolset: true);
+            }
+            catch (Exception ex)
+            {
+                MainTabs.SelectedIndex = 1;
+                InputBox.Text = $"-- Failed to build migration samples: {ex.Message}";
+            }
+        }
 
         private void TypeToggle_Click(object sender, RoutedEventArgs e)
         {
@@ -358,13 +400,12 @@ namespace SsmsToolset.UI
                     ToolsetSettings.ShowFunctions,
                     ToolsetSettings.ShowColumnsParams));
 
-                _objects.Clear();
-                foreach (var item in loaded)
-                {
-                    _objects.Add(item);
-                }
-                _objectsView.Refresh();
-                UpdateObjectsStatus();
+                _inventory.Clear();
+                _inventory.AddRange(loaded);
+
+                // Re-render under the current search mode/term (definition search, if
+                // active, re-queries; otherwise the inventory is shown/filtered by name).
+                RunSearch();
             }
             catch (Exception ex)
             {
@@ -377,9 +418,73 @@ namespace SsmsToolset.UI
             SearchPlaceholder.Visibility =
                 string.IsNullOrEmpty(SearchBox.Text) ? Visibility.Visible : Visibility.Collapsed;
 
-            _searchTerm = TextNormalizer.Normalize(SearchBox.Text);
+            // Debounce: (re)start the 500 ms timer; the search fires once typing pauses.
+            _searchDebounce.Stop();
+            _searchDebounce.Start();
+        }
+
+        private void SearchMode_Click(object sender, RoutedEventArgs e)
+        {
+            _searchInDefinitions = SearchInDefinitions.IsChecked == true;
+            SearchPlaceholder.Text = _searchInDefinitions
+                ? "Search inside definitions (views, procs, functions)..."
+                : "Search objects (accent-insensitive)...";
+
+            _searchDebounce.Stop();
+            RunSearch();
+        }
+
+        /// <summary>
+        /// Renders the grid for the current mode: an in-memory accent-insensitive
+        /// name filter over the inventory, or a server-side search of object bodies.
+        /// </summary>
+        private async void RunSearch()
+        {
+            if (string.IsNullOrEmpty(_connectionString))
+            {
+                return;
+            }
+
+            string term = (SearchBox.Text ?? string.Empty).Trim();
+
+            if (_searchInDefinitions && term.Length > 0)
+            {
+                // Definition search is done in SQL, so the in-memory name filter is off.
+                _searchTerm = string.Empty;
+                ObjectsStatus.Text = "Searching definitions...";
+                try
+                {
+                    var hits = await Task.Run(() => DatabaseObjectService.SearchDefinitions(
+                        _connectionString,
+                        term,
+                        ToolsetSettings.ShowViews,
+                        ToolsetSettings.ShowProcedures,
+                        ToolsetSettings.ShowFunctions));
+                    SetObjects(hits);
+                }
+                catch (Exception ex)
+                {
+                    ObjectsStatus.Text = "Search error: " + ex.Message;
+                    return;
+                }
+            }
+            else
+            {
+                _searchTerm = _searchInDefinitions ? string.Empty : TextNormalizer.Normalize(term);
+                SetObjects(_inventory);
+            }
+
             _objectsView?.Refresh();
             UpdateObjectsStatus();
+        }
+
+        private void SetObjects(IEnumerable<DatabaseObject> items)
+        {
+            _objects.Clear();
+            foreach (var item in items)
+            {
+                _objects.Add(item);
+            }
         }
 
         private bool FilterObject(object item)

@@ -17,7 +17,7 @@ namespace SsmsToolset.Data
             => o != null && (o.TypeCode == "U" || o.TypeCode == "V");
 
         public static string SelectTop(DatabaseObject o, int count)
-            => $"SELECT TOP ({count}) *\nFROM {Quote(o.Schema)}.{Quote(o.Name)};";
+            => $"SELECT TOP ({count}) *\nFROM {Quote(o.Schema)}.{Quote(o.Name)}\nWHERE 1 = 1\n-- AND ";
 
         /// <summary>
         /// A SELECT TOP N that lists every column explicitly (round-trips to the DB
@@ -39,8 +39,53 @@ namespace SsmsToolset.Data
                 if (i < columns.Count - 1) { sb.Append(','); }
                 sb.Append('\n');
             }
-            sb.Append($"FROM {Quote(o.Schema)}.{Quote(o.Name)};");
+            sb.Append($"FROM {Quote(o.Schema)}.{Quote(o.Name)}\nWHERE 1 = 1\n-- AND ");
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Builds a single script with a <c>SELECT TOP 10</c> for every user table
+        /// whose name contains "Migration". Each is ordered by <c>MigrationId DESC</c>
+        /// when that column exists (skipped otherwise so the query still runs).
+        /// </summary>
+        public static string BuildMigrationSamples(string connectionString)
+        {
+            const string query = @"
+SELECT s.name AS SchemaName, o.name AS TableName,
+       CASE WHEN EXISTS (
+           SELECT 1 FROM sys.columns c
+           WHERE c.object_id = o.object_id AND c.name = 'MigrationId'
+       ) THEN 1 ELSE 0 END AS HasMigrationId
+FROM sys.objects o
+INNER JOIN sys.schemas s ON s.schema_id = o.schema_id
+WHERE o.type = 'U' AND o.is_ms_shipped = 0
+  AND o.name LIKE '%Migration%'
+ORDER BY s.name, o.name;";
+
+            var blocks = new List<string>();
+            using (var connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                using (var command = new SqlCommand(query, connection))
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        string obj = $"{Quote(reader.GetString(0))}.{Quote(reader.GetString(1))}";
+                        bool hasMigrationId = reader.GetInt32(2) == 1;
+                        string block = $"-- {obj}\nSELECT TOP 10 *\nFROM {obj}";
+                        if (hasMigrationId)
+                        {
+                            block += "\nORDER BY [MigrationId] DESC";
+                        }
+                        blocks.Add(block);
+                    }
+                }
+            }
+
+            return blocks.Count == 0
+                ? "-- No tables containing 'Migration' were found."
+                : "-- Migration tables (TOP 10, newest first)\n\n" + string.Join("\n\n", blocks);
         }
 
         /// <summary>
@@ -68,7 +113,7 @@ namespace SsmsToolset.Data
                     sb.Append('\n');
                 }
             }
-            sb.Append("-- WHERE ").Append(BuildWhere(keys, columns)).Append(';');
+            sb.Append("-- WHERE ").Append(BuildWhere(keys, columns));
             return sb.ToString();
         }
 
@@ -79,7 +124,7 @@ namespace SsmsToolset.Data
         public static string DeleteStatement(string connectionString, DatabaseObject o)
         {
             GetColumnsAndKeys(connectionString, o, out var columns, out var keys);
-            return $"DELETE FROM {Quote(o.Schema)}.{Quote(o.Name)}\nWHERE {BuildWhere(keys, columns)};";
+            return $"DELETE FROM {Quote(o.Schema)}.{Quote(o.Name)}\nWHERE {BuildWhere(keys, columns)}";
         }
 
         /// <summary>
@@ -97,7 +142,7 @@ namespace SsmsToolset.Data
             {
                 if (parameters.Count == 0)
                 {
-                    return $"EXEC {obj};";
+                    return $"EXEC {obj}";
                 }
 
                 var sb = new StringBuilder();
@@ -110,16 +155,15 @@ namespace SsmsToolset.Data
                     if (i < parameters.Count - 1) { sb.Append(','); }
                     sb.Append('\n');
                 }
-                sb.Append(';');
-                return sb.ToString();
+                return sb.ToString().TrimEnd('\n');
             }
 
             // Functions take positional arguments.
             string args = string.Join(", ", parameters.Select(p => $"<{p.Name.TrimStart('@')}>"));
             bool tableValued = o.TypeCode == "IF" || o.TypeCode == "TF" || o.TypeCode == "FT";
             return tableValued
-                ? $"SELECT *\nFROM {obj}({args});"
-                : $"SELECT {obj}({args}) AS Result;";
+                ? $"SELECT *\nFROM {obj}({args})"
+                : $"SELECT {obj}({args}) AS Result";
         }
 
         private sealed class ParamInfo
@@ -354,7 +398,7 @@ ORDER BY ic.key_ordinal;";
             {
                 script.Append($",\n    PRIMARY KEY ({primaryKey})");
             }
-            script.Append("\n);");
+            script.Append("\n)");
             return script.ToString();
         }
 

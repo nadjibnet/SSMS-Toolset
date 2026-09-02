@@ -24,7 +24,7 @@ namespace SsmsToolset.UI
     public static class ToolsetSettings
     {
         private static ToolsetThemeKind _theme = ToolsetThemeKind.Dark;
-        private static QueryTarget _queryTarget = QueryTarget.ToolsetTab;
+        private static QueryTarget _queryTarget = QueryTarget.NewSsmsQuery;
         private static bool _showTables = true;
         private static bool _showViews = true;
         private static bool _showProcedures = true;
