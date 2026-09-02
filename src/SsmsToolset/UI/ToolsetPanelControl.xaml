@@ -1,6 +1,7 @@
 <UserControl x:Class="SsmsToolset.UI.ToolsetPanelControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:SsmsToolset.UI"
              Background="{DynamicResource T.Window}">
 
     <UserControl.Resources>
@@ -243,16 +244,32 @@
                                 <DataGridTextColumn Header="Type"   Binding="{Binding TypeLabel}" Width="110"/>
                                 <DataGridTextColumn Header="Schema" Binding="{Binding Schema}"    Width="120"/>
                                 <DataGridTextColumn Header="Name"   Binding="{Binding Name}"      Width="Auto" MinWidth="160"/>
-                                <DataGridTextColumn x:Name="ColumnsParamsColumn"
-                                                    Header="Columns/Params" Binding="{Binding ColumnsOrParams}"
-                                                    Width="Auto" MinWidth="200" MaxWidth="900">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-                                            <Setter Property="ToolTip" Value="{Binding ColumnsOrParams}"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                                <DataGridTemplateColumn x:Name="ColumnsParamsColumn"
+                                                        Width="Auto" MinWidth="200" MaxWidth="900">
+                                    <DataGridTemplateColumn.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Columns/Params" VerticalAlignment="Center"/>
+                                            <TextBox x:Name="ColumnsHighlightBox"
+                                                     Width="150" Margin="10,0,0,0" Padding="4,1" FontSize="11"
+                                                     VerticalAlignment="Center"
+                                                     Background="{DynamicResource T.Input}" Foreground="{DynamicResource T.Text}"
+                                                     BorderBrush="{DynamicResource T.Border}" BorderThickness="1"
+                                                     ToolTip="Highlight matching text in this column"
+                                                     Text="{Binding ColumnsHighlight,
+                                                            RelativeSource={RelativeSource AncestorType=UserControl},
+                                                            UpdateSourceTrigger=PropertyChanged}"/>
+                                        </StackPanel>
+                                    </DataGridTemplateColumn.Header>
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding ColumnsOrParams}"
+                                                       local:TextHighlighter.SourceText="{Binding ColumnsOrParams}"
+                                                       local:TextHighlighter.Term="{Binding ColumnsHighlight,
+                                                            RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>

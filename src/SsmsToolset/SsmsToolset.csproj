@@ -65,6 +65,7 @@
     <Compile Include="ToolWindow\ToolsetWindowPane.cs" />
     <Compile Include="UI\ToolsetSettings.cs" />
     <Compile Include="UI\ToolsetTheme.cs" />
+    <Compile Include="UI\TextHighlighter.cs" />
     <Compile Include="UI\ToolsetPanelControl.xaml.cs">
       <DependentUpon>UI\ToolsetPanelControl.xaml</DependentUpon>
       <SubType>Code</SubType>

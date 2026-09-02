@@ -57,6 +57,22 @@ namespace SsmsToolset.UI
         /// <summary>Wired by the host after the frame is shown; docks the tool window.</summary>
         public Action DockAction { get; set; }
 
+        /// <summary>
+        /// Live highlight term for the Columns/Params column. Bound to the search
+        /// box in that column's header and to each cell's highlighter, so typing
+        /// yellow-highlights matching text in every cell without hiding any rows.
+        /// </summary>
+        public static readonly DependencyProperty ColumnsHighlightProperty =
+            DependencyProperty.Register(
+                nameof(ColumnsHighlight), typeof(string), typeof(ToolsetPanelControl),
+                new PropertyMetadata(string.Empty));
+
+        public string ColumnsHighlight
+        {
+            get => (string)GetValue(ColumnsHighlightProperty);
+            set => SetValue(ColumnsHighlightProperty, value);
+        }
+
         public ToolsetPanelControl(string databaseName, string serverName, string connectionString, Action<string> openInSsmsQuery = null)
         {
             _connectionString = connectionString;
