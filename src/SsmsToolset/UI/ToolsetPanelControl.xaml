@@ -166,15 +166,10 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Toolbar: refresh + object-type toggles -->
-                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                            <Button x:Name="RefreshBtn" Content="&#x21BB;  Refresh"
-                                    Style="{StaticResource ToolBtn}" Click="RefreshBtn_Click"/>
-                            <ToggleButton x:Name="ToggleTables"     Content="Tables"     Style="{StaticResource TypeToggle}" Click="TypeToggle_Click" Margin="14,0,0,0"/>
-                            <ToggleButton x:Name="ToggleViews"      Content="Views"      Style="{StaticResource TypeToggle}" Click="TypeToggle_Click"/>
-                            <ToggleButton x:Name="ToggleProcedures" Content="Procedures" Style="{StaticResource TypeToggle}" Click="TypeToggle_Click"/>
-                            <ToggleButton x:Name="ToggleFunctions"  Content="Functions"  Style="{StaticResource TypeToggle}" Click="TypeToggle_Click"/>
-                            <Button x:Name="SamplesBtn" Content="Samples &#x25BE;" Style="{StaticResource ToolBtn}"
+                        <!-- Toolbar: refresh + object-type toggles (Samples docked far right) -->
+                        <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                            <Button x:Name="SamplesBtn" DockPanel.Dock="Right"
+                                    Content="Samples &#x25BE;" Style="{StaticResource ToolBtn}"
                                     Margin="14,0,0,0" Click="SamplesBtn_Click"
                                     ToolTip="Ready-made sample queries">
                                 <Button.ContextMenu>
@@ -183,7 +178,15 @@
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
-                        </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="RefreshBtn" Content="&#x21BB;  Refresh"
+                                        Style="{StaticResource ToolBtn}" Click="RefreshBtn_Click"/>
+                                <ToggleButton x:Name="ToggleTables"     Content="Tables"     Style="{StaticResource TypeToggle}" Click="TypeToggle_Click" Margin="14,0,0,0"/>
+                                <ToggleButton x:Name="ToggleViews"      Content="Views"      Style="{StaticResource TypeToggle}" Click="TypeToggle_Click"/>
+                                <ToggleButton x:Name="ToggleProcedures" Content="Procedures" Style="{StaticResource TypeToggle}" Click="TypeToggle_Click"/>
+                                <ToggleButton x:Name="ToggleFunctions"  Content="Functions"  Style="{StaticResource TypeToggle}" Click="TypeToggle_Click"/>
+                            </StackPanel>
+                        </DockPanel>
 
                         <DockPanel Grid.Row="1" Margin="0,0,0,8">
                             <ToggleButton x:Name="SearchInDefinitions" DockPanel.Dock="Right"
