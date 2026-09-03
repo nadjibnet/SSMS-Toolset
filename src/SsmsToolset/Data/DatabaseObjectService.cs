@@ -88,27 +88,40 @@ ORDER BY s.name, o.name;";
             bool wantColumns,
             bool wantParams)
         {
-            var lists = new Dictionary<int, StringBuilder>();
+            var tokens = new Dictionary<int, List<ColumnToken>>();
 
-            void Append(int objectId, string member)
+            void Add(int objectId, ColumnToken token)
             {
                 if (!byId.ContainsKey(objectId))
                 {
                     return;
                 }
-                if (!lists.TryGetValue(objectId, out var sb))
+                if (!tokens.TryGetValue(objectId, out var list))
                 {
-                    sb = new StringBuilder();
-                    lists[objectId] = sb;
+                    list = new List<ColumnToken>();
+                    tokens[objectId] = list;
                 }
-                if (sb.Length > 0) { sb.Append(", "); }
-                sb.Append(member);
+                list.Add(token);
             }
 
             if (wantColumns)
             {
+                // Columns of tables/views, flagged as primary key (any PK index
+                // column) and/or foreign key (any FK parent column).
                 const string columnsQuery = @"
-SELECT c.object_id, c.name
+SELECT c.object_id, c.name,
+       CASE WHEN EXISTS (
+           SELECT 1 FROM sys.indexes i
+           INNER JOIN sys.index_columns ic
+               ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+           WHERE i.is_primary_key = 1
+             AND i.object_id = c.object_id AND ic.column_id = c.column_id
+       ) THEN 1 ELSE 0 END AS IsPrimaryKey,
+       CASE WHEN EXISTS (
+           SELECT 1 FROM sys.foreign_key_columns fkc
+           WHERE fkc.parent_object_id = c.object_id
+             AND fkc.parent_column_id = c.column_id
+       ) THEN 1 ELSE 0 END AS IsForeignKey
 FROM sys.columns c
 INNER JOIN sys.objects o ON o.object_id = c.object_id
 WHERE o.is_ms_shipped = 0 AND o.type IN ('U','V')
@@ -118,7 +131,12 @@ ORDER BY c.object_id, c.column_id;";
                 {
                     while (reader.Read())
                     {
-                        Append(reader.GetInt32(0), reader.GetString(1));
+                        Add(reader.GetInt32(0), new ColumnToken
+                        {
+                            Name = reader.GetString(1),
+                            IsPrimaryKey = reader.GetInt32(2) == 1,
+                            IsForeignKey = reader.GetInt32(3) == 1
+                        });
                     }
                 }
             }
@@ -137,15 +155,34 @@ ORDER BY p.object_id, p.parameter_id;";
                 {
                     while (reader.Read())
                     {
-                        Append(reader.GetInt32(0), reader.GetString(1));
+                        Add(reader.GetInt32(0), new ColumnToken { Name = reader.GetString(1) });
                     }
                 }
             }
 
-            foreach (var pair in lists)
+            foreach (var pair in tokens)
             {
-                byId[pair.Key].ColumnsOrParams = pair.Value.ToString();
+                var obj = byId[pair.Key];
+                obj.ColumnTokens = pair.Value;
+                obj.ColumnsOrParams = BuildDisplayList(pair.Value);
             }
+        }
+
+        /// <summary>
+        /// Plain-text form of a token list (for the cell tooltip), prefixing keys
+        /// with <c>[pk]</c> / <c>[fk]</c> to match the grid's rendering.
+        /// </summary>
+        private static string BuildDisplayList(List<ColumnToken> tokens)
+        {
+            var sb = new StringBuilder();
+            foreach (var token in tokens)
+            {
+                if (sb.Length > 0) { sb.Append(", "); }
+                if (token.IsPrimaryKey) { sb.Append("[pk]"); }
+                else if (token.IsForeignKey) { sb.Append("[fk]"); }
+                sb.Append(token.Name);
+            }
+            return sb.ToString();
         }
 
         /// <summary>

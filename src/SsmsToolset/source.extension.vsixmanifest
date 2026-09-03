@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="SsmsToolset.b7e3f5a1-9c24-4d8e-8f10-2a3b4c5d6e70" Version="0.1.10" Language="en-US" Publisher="SSMS-Toolset contributors" />
+    <Identity Id="SsmsToolset.b7e3f5a1-9c24-4d8e-8f10-2a3b4c5d6e70" Version="0.1.11" Language="en-US" Publisher="SSMS-Toolset contributors" />
     <DisplayName>SSMS Toolset</DisplayName>
     <Description xml:space="preserve">Azure Data Studio-style database tools for SQL Server Management Studio 22. Right-click a database in Object Explorer to search objects, get definitions, and script SELECT TOP N using that database's connection.</Description>
     <Tags>SSMS;SQL Server;Object Explorer;database;tools</Tags>

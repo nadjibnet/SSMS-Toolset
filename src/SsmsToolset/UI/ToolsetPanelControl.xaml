@@ -264,7 +264,7 @@
                                         <DataTemplate>
                                             <TextBlock TextTrimming="CharacterEllipsis"
                                                        ToolTip="{Binding ColumnsOrParams}"
-                                                       local:TextHighlighter.SourceText="{Binding ColumnsOrParams}"
+                                                       local:TextHighlighter.Tokens="{Binding ColumnTokens}"
                                                        local:TextHighlighter.Term="{Binding ColumnsHighlight,
                                                             RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                                         </DataTemplate>

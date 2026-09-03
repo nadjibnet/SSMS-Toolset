@@ -1,5 +1,18 @@
+using System.Collections.Generic;
+
 namespace SsmsToolset.Data
 {
+    /// <summary>
+    /// One member of a "Columns/Params" list: a column (tables/views, possibly a
+    /// primary or foreign key) or a parameter (procedures/functions, never a key).
+    /// </summary>
+    public sealed class ColumnToken
+    {
+        public string Name { get; set; }
+        public bool IsPrimaryKey { get; set; }
+        public bool IsForeignKey { get; set; }
+    }
+
     /// <summary>A schema-scoped database object (table, view, procedure, function).</summary>
     public sealed class DatabaseObject
     {
@@ -21,6 +34,13 @@ namespace SsmsToolset.Data
         /// "Columns/Params" column is enabled.
         /// </summary>
         public string ColumnsOrParams { get; set; }
+
+        /// <summary>
+        /// Structured form of <see cref="ColumnsOrParams"/> — one token per column
+        /// or parameter, carrying primary/foreign-key flags so the grid can mark
+        /// and emphasise keys. Populated alongside <see cref="ColumnsOrParams"/>.
+        /// </summary>
+        public List<ColumnToken> ColumnTokens { get; set; }
 
         public string FullName => $"{Schema}.{Name}";
 
