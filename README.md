@@ -60,8 +60,8 @@ Extensions directory and restarting SSMS:
 
 ```powershell
 # from a build or release payload
-./build/install.ps1      # copies into %LocalAppData%\Microsoft\SSMS\<ver>\Extensions\SsmsToolset
-./build/uninstall.ps1    # removes it
+./build/install.ps1
+./build/uninstall.ps1
 ```
 
 Then restart SSMS 22. If you downloaded the package from the internet, **Unblock**
