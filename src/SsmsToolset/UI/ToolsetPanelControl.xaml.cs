@@ -39,6 +39,9 @@ namespace SsmsToolset.UI
         /// <summary>The most recent Query-tab result, kept so it can be exported.</summary>
         private DataTable _lastResult;
 
+        /// <summary>The object whose full definition is shown in the Full definition tab.</summary>
+        private DatabaseObject _fullDefTarget;
+
         private readonly ObservableCollection<DatabaseObject> _objects = new ObservableCollection<DatabaseObject>();
 
         /// <summary>Full loaded inventory; the grid shows this (name mode) or definition-search hits.</summary>
@@ -131,7 +134,7 @@ namespace SsmsToolset.UI
             }
             catch (Exception ex)
             {
-                MainTabs.SelectedIndex = 1;
+                MainTabs.SelectedItem = QueryTab;
                 InputBox.Text = $"-- Failed to build migration samples: {ex.Message}";
             }
         }
@@ -186,12 +189,6 @@ namespace SsmsToolset.UI
             TargetSsmsItem.IsChecked = ToolsetSettings.QueryTarget == QueryTarget.NewSsmsQuery;
 
             ShowColumnsItem.IsChecked = ToolsetSettings.ShowColumnsParams;
-            CleanTempItem.IsChecked = ToolsetSettings.CleanTempOnStartup;
-        }
-
-        private void CleanTemp_Click(object sender, RoutedEventArgs e)
-        {
-            ToolsetSettings.CleanTempOnStartup = CleanTempItem.IsChecked == true;
         }
 
         private void ShowColumns_Click(object sender, RoutedEventArgs e)
@@ -289,14 +286,14 @@ namespace SsmsToolset.UI
             }
             catch (Exception ex)
             {
-                MainTabs.SelectedIndex = 1;
+                MainTabs.SelectedItem = QueryTab;
                 InputBox.Text = $"-- Failed to build SELECT for {target.FullName}: {ex.Message}";
             }
         }
 
         private void ShowSelectTopUnsupported(DatabaseObject target)
         {
-            MainTabs.SelectedIndex = 1;
+            MainTabs.SelectedItem = QueryTab;
             InputBox.Text = $"-- Select Top applies to tables and views, not {target.TypeLabel.ToLowerInvariant()}s.";
         }
 
@@ -324,7 +321,7 @@ namespace SsmsToolset.UI
             }
             catch (Exception ex)
             {
-                MainTabs.SelectedIndex = 1;
+                MainTabs.SelectedItem = QueryTab;
                 InputBox.Text = $"-- Failed to build EXEC template for {target.FullName}: {ex.Message}";
             }
         }
@@ -347,9 +344,24 @@ namespace SsmsToolset.UI
             }
             catch (Exception ex)
             {
-                MainTabs.SelectedIndex = 1;
+                MainTabs.SelectedItem = QueryTab;
                 InputBox.Text = $"-- Failed to build statement for {target.FullName}: {ex.Message}";
             }
+        }
+
+        // "Full definition": run sp_help and present its result sets in the dedicated
+        // Full definition tab, each set rendered as its own titled card.
+        private async void ObjectInfo_Click(object sender, RoutedEventArgs e)
+        {
+            var target = TargetOf(sender);
+            if (target == null)
+            {
+                return;
+            }
+
+            _fullDefTarget = target;
+            MainTabs.SelectedItem = FullDefTab;
+            await LoadFullDefinitionAsync();
         }
 
         private async void ScriptCreate_Click(object sender, RoutedEventArgs e)
@@ -367,7 +379,7 @@ namespace SsmsToolset.UI
             }
             catch (Exception ex)
             {
-                MainTabs.SelectedIndex = 1;
+                MainTabs.SelectedItem = QueryTab;
                 InputBox.Text = $"-- Failed to script {target.FullName}: {ex.Message}";
             }
         }
@@ -387,13 +399,13 @@ namespace SsmsToolset.UI
                 }
                 catch (Exception ex)
                 {
-                    MainTabs.SelectedIndex = 1;
+                    MainTabs.SelectedItem = QueryTab;
                     InputBox.Text = $"-- Could not open a new SSMS query ({ex.Message}). Showing it here instead:\n\n{sql}";
                     return;
                 }
             }
 
-            MainTabs.SelectedIndex = 1;
+            MainTabs.SelectedItem = QueryTab;
             InputBox.Text = sql;
             if (executeInToolset)
             {
@@ -652,6 +664,219 @@ namespace SsmsToolset.UI
                 ? new SolidColorBrush(Color.FromRgb(0xF4, 0x47, 0x47))
                 : new SolidColorBrush(Color.FromRgb(0x4E, 0xC9, 0xB0));
             StatusText.Visibility = Visibility.Visible;
+        }
+
+        // ── Full definition tab (sp_help) ───────────────────────────────────
+
+        private async Task LoadFullDefinitionAsync()
+        {
+            var o = _fullDefTarget;
+            if (o == null)
+            {
+                return;
+            }
+
+            FullDefTitle.Text = o.FullName;
+            FullDefSubtitle.Text = o.TypeLabel;
+            FullDefStack.Children.Clear();
+            FullDefStack.Children.Add(MakeInfoText("Loading definition..."));
+
+            if (string.IsNullOrEmpty(_connectionString))
+            {
+                ShowFullDefMessage("No connection available for this database.");
+                return;
+            }
+
+            string sql = SqlScriptGenerator.ObjectInfo(o);
+            try
+            {
+                var tables = await Task.Run(() =>
+                {
+                    var data = new DataSet();
+                    using (var conn = new SqlConnection(_connectionString))
+                    {
+                        conn.Open();
+                        using (var adapter = new SqlDataAdapter(sql, conn))
+                        {
+                            adapter.Fill(data);
+                        }
+                    }
+                    return data.Tables;
+                });
+
+                BuildFullDefinition(tables, o);
+            }
+            catch (Exception ex)
+            {
+                ShowFullDefMessage("Could not load definition: " + ex.Message);
+            }
+        }
+
+        private void BuildFullDefinition(DataTableCollection tables, DatabaseObject o)
+        {
+            FullDefStack.Children.Clear();
+
+            if (tables == null || tables.Count == 0)
+            {
+                ShowFullDefMessage($"sp_help returned no information for {o.FullName}.");
+                return;
+            }
+
+            for (int i = 0; i < tables.Count; i++)
+            {
+                var table = tables[i];
+                FrameworkElement body = table.Rows.Count == 1
+                    ? BuildKeyValue(table)
+                    : BuildGrid(table);
+                FullDefStack.Children.Add(BuildCard(InferSectionTitle(table, i), table.Rows.Count, body));
+            }
+        }
+
+        /// <summary>Names an sp_help result set from its column signature.</summary>
+        private static string InferSectionTitle(DataTable table, int index)
+        {
+            bool Has(string name) => table.Columns.Contains(name);
+
+            if (Has("Column_name")) return "Columns";
+            if (Has("index_name")) return "Indexes";
+            if (Has("constraint_type")) return "Constraints";
+            if (Has("Identity")) return "Identity";
+            if (Has("RowGuidCol")) return "RowGuid column";
+            if (Has("Data_located_on_filegroup")) return "Storage";
+            if (Has("Parameter_name")) return "Parameters";
+            if (Has("Name") && Has("Owner") && Has("Type")) return "Object";
+            return index == 0 ? "Summary" : $"Section {index + 1}";
+        }
+
+        /// <summary>Single-row set → a vertical field: value list (nicer than a 1-row grid).</summary>
+        private FrameworkElement BuildKeyValue(DataTable table)
+        {
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            DataRow row = table.Rows[0];
+            int r = 0;
+            foreach (DataColumn column in table.Columns)
+            {
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                var label = new TextBlock { Text = column.ColumnName, Margin = new Thickness(0, 3, 20, 3) };
+                label.SetResourceReference(TextBlock.ForegroundProperty, "T.TextMuted");
+                Grid.SetRow(label, r);
+                Grid.SetColumn(label, 0);
+
+                string text = row[column]?.ToString().Trim();
+                // A read-only borderless TextBox (not a TextBlock) so the value can
+                // be selected and copied — WPF TextBlocks aren't selectable here.
+                var value = new TextBox
+                {
+                    Text = string.IsNullOrEmpty(text) ? "—" : text,
+                    IsReadOnly = true,
+                    IsTabStop = false,
+                    BorderThickness = new Thickness(0),
+                    Background = Brushes.Transparent,
+                    Padding = new Thickness(0),
+                    Margin = new Thickness(0, 3, 0, 3),
+                    TextWrapping = TextWrapping.Wrap,
+                    FontFamily = new FontFamily("Consolas")
+                };
+                value.SetResourceReference(ForegroundProperty, "T.Text");
+                Grid.SetRow(value, r);
+                Grid.SetColumn(value, 1);
+
+                grid.Children.Add(label);
+                grid.Children.Add(value);
+                r++;
+            }
+            return grid;
+        }
+
+        /// <summary>Multi-row set → a compact themed grid.</summary>
+        private FrameworkElement BuildGrid(DataTable table)
+        {
+            var grid = new DataGrid
+            {
+                AutoGenerateColumns = true,
+                IsReadOnly = true,
+                CanUserAddRows = false,
+                CanUserDeleteRows = false,
+                HeadersVisibility = DataGridHeadersVisibility.Column,
+                GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                MaxHeight = 460,
+                BorderThickness = new Thickness(1),
+                ItemsSource = table.DefaultView,
+                // Per-cell selection + Ctrl+C / right-click copy of any cell.
+                SelectionUnit = DataGridSelectionUnit.CellOrRowHeader,
+                SelectionMode = DataGridSelectionMode.Extended,
+                ClipboardCopyMode = DataGridClipboardCopyMode.ExcludeHeader,
+                ColumnHeaderStyle = FindResource("HeaderStyle") as Style,
+                CellStyle = FindResource("CellStyle") as Style
+            };
+            grid.SetResourceReference(BackgroundProperty, "T.Input");
+            grid.SetResourceReference(ForegroundProperty, "T.Text");
+            grid.SetResourceReference(BorderBrushProperty, "T.Border");
+            grid.SetResourceReference(DataGrid.RowBackgroundProperty, "T.Input");
+            grid.SetResourceReference(DataGrid.AlternatingRowBackgroundProperty, "T.AltRow");
+            grid.SetResourceReference(DataGrid.HorizontalGridLinesBrushProperty, "T.GridLine");
+
+            var copyItem = new MenuItem { Header = "Copy", Command = System.Windows.Input.ApplicationCommands.Copy };
+            copyItem.CommandTarget = grid;
+            grid.ContextMenu = new ContextMenu();
+            grid.ContextMenu.Items.Add(copyItem);
+            return grid;
+        }
+
+        private Border BuildCard(string title, int rowCount, FrameworkElement body)
+        {
+            var header = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+
+            var titleText = new TextBlock { Text = title, FontSize = 13, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+            titleText.SetResourceReference(TextBlock.ForegroundProperty, "T.Accent");
+            header.Children.Add(titleText);
+
+            if (rowCount != 1)
+            {
+                var count = new TextBlock
+                {
+                    Text = $"  {rowCount} row{(rowCount == 1 ? "" : "s")}",
+                    FontSize = 11,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                count.SetResourceReference(TextBlock.ForegroundProperty, "T.TextMuted");
+                header.Children.Add(count);
+            }
+
+            var panel = new StackPanel();
+            panel.Children.Add(header);
+            panel.Children.Add(body);
+
+            var card = new Border
+            {
+                Padding = new Thickness(12),
+                Margin = new Thickness(0, 0, 0, 12),
+                CornerRadius = new CornerRadius(6),
+                BorderThickness = new Thickness(1),
+                Child = panel
+            };
+            card.SetResourceReference(BackgroundProperty, "T.Input");
+            card.SetResourceReference(BorderBrushProperty, "T.Border");
+            return card;
+        }
+
+        private void ShowFullDefMessage(string message)
+        {
+            FullDefStack.Children.Clear();
+            FullDefStack.Children.Add(MakeInfoText(message));
+        }
+
+        private TextBlock MakeInfoText(string message)
+        {
+            var text = new TextBlock { Text = message, FontSize = 12, TextWrapping = TextWrapping.Wrap };
+            text.SetResourceReference(TextBlock.ForegroundProperty, "T.TextMuted");
+            return text;
         }
 
         // ── Header ──────────────────────────────────────────────────────────

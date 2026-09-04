@@ -68,11 +68,9 @@ keeps them:
 - **`TrustServerCertificate` is enabled** for the tool's own reconnection to the
   database, matching typical SSMS usage. This trusts the server certificate without
   chain validation; it reconnects only to the same server SSMS already trusts.
-- **Temp query files.** Opening generated SQL in a *new SSMS query* writes it to a
-  temporary file (`%TEMP%\SsmsToolset_*.sql`) that SSMS then opens. These contain
-  the generated SQL (object/schema names, no credentials). By default the extension
-  **deletes leftover temp files at startup**; you can turn this off in
-  **Options → Maintenance → “Clean temp .sql files at startup.”**
+- **No temp files.** Opening generated SQL in a *new SSMS query* creates an
+  untitled in-memory query and injects the text directly — nothing is written to
+  disk unless you choose to Save.
 - **Exports are plaintext.** *Copy* and *Export CSV* on the Query tab write the
   result rows you chose to export as plaintext (clipboard / `.csv`). Treat those
   outputs as sensitive if the underlying data is.

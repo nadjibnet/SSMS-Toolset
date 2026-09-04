@@ -131,10 +131,6 @@
                             <MenuItem Header="Objects list" IsEnabled="False"/>
                             <MenuItem x:Name="ShowColumnsItem" Header="Show Columns/Params column (slower load)"
                                       IsCheckable="True" Click="ShowColumns_Click"/>
-                            <Separator/>
-                            <MenuItem Header="Maintenance" IsEnabled="False"/>
-                            <MenuItem x:Name="CleanTempItem" Header="Clean temp .sql files at startup"
-                                      IsCheckable="True" Click="CleanTemp_Click"/>
                         </ContextMenu>
                     </Button.ContextMenu>
                 </Button>
@@ -237,6 +233,7 @@
                                     <MenuItem Header="Execute (with parameters)" Click="Exec_Click" IsEnabled="{Binding IsExecutable}"/>
                                     <Separator/>
                                     <MenuItem Header="Script as CREATE" Click="ScriptCreate_Click"/>
+                                    <MenuItem Header="Full definition" Click="ObjectInfo_Click"/>
                                 </ContextMenu>
                             </DataGrid.Resources>
                             <DataGrid.RowStyle>
@@ -280,8 +277,40 @@
                 </Border>
             </TabItem>
 
-            <!-- Secondary tab: Query -->
-            <TabItem Header="Query">
+            <!-- Full definition tab: sp_help result sets, each as a titled card -->
+            <TabItem Header="Full definition" x:Name="FullDefTab">
+                <Border Background="{DynamicResource T.Card}" BorderBrush="{DynamicResource T.Border}" BorderThickness="1"
+                        CornerRadius="6" Padding="12">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="Full definition" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource T.Accent}" VerticalAlignment="Center"/>
+                            <Border Background="{DynamicResource T.BadgeBg}" CornerRadius="4" Margin="12,0,0,0" Padding="8,2">
+                                <TextBlock x:Name="FullDefTitle" Foreground="{DynamicResource T.BadgeFg}"
+                                           FontSize="12" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock x:Name="FullDefSubtitle" Foreground="{DynamicResource T.TextMuted}"
+                                       FontSize="11" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        </StackPanel>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel x:Name="FullDefStack">
+                                <TextBlock Text="Right-click an object in the Objects tab and choose &#x201C;Full definition.&#x201D;"
+                                           Foreground="{DynamicResource T.TextMuted}" FontSize="12" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </TabItem>
+
+            <!-- Query tab -->
+            <TabItem Header="Query" x:Name="QueryTab">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>

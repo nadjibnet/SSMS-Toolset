@@ -27,7 +27,7 @@ namespace SsmsToolset
     [InstalledProductRegistration(
         productName: "SSMS Toolset",
         productDetails: "Azure Data Studio-style database tools for SQL Server Management Studio 22.",
-        productId: "0.1.13")]
+        productId: "0.2.1")]
     // Auto-load when the Object Explorer tool window is present (its well-known GUID).
     [ProvideAutoLoad(ObjectExplorerToolWindowGuid, PackageAutoLoadFlags.BackgroundLoad)]
     [Guid(PackageGuidString)]
@@ -49,12 +49,6 @@ namespace SsmsToolset
         {
             await base.InitializeAsync(cancellationToken, progress);
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
-
-            // Remove leftover temp .sql files from previous sessions (opt-out setting).
-            if (UI.ToolsetSettings.CleanTempOnStartup)
-            {
-                Ssms.SsmsQueryLauncher.CleanupTempFiles();
-            }
 
             _objectExplorer = GetService(typeof(IObjectExplorerService)) as IObjectExplorerService;
             if (_objectExplorer == null)

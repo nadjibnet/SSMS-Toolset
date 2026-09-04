@@ -1,12 +1,12 @@
 using System;
-using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
+using EnvDTE;
 using Microsoft.SqlServer.Management.Smo.RegSvrEnum;
 using Microsoft.SqlServer.Management.UI.VSIntegration.ObjectExplorer;
 using Microsoft.SqlServer.Management.UI.VSIntegration.Editors;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 
 namespace SsmsToolset.Ssms
 {
@@ -14,18 +14,13 @@ namespace SsmsToolset.Ssms
     /// Opens a native SSMS query window connected to the selected database and
     /// pre-filled with SQL — the "New SSMS query" destination for object actions.
     ///
-    /// This mirrors exactly what SSMS's own Object Explorer "New Query" does:
-    /// build a valid <see cref="UIConnectionInfo"/> for the node (server + auth +
-    /// database, taken from SSMS's connection cache) and call
-    /// <c>IScriptFactory.CreateNewScript(file, connectionInfo, null)</c> — letting
-    /// SSMS create the connection. Handing it a foreign SqlConnection instead
-    /// produces "Cannot execute query without connection information".
+    /// It opens a new <b>untitled</b> query (via <c>IScriptFactory.CreateNewBlankScript</c>)
+    /// connected to the node's database, then injects the SQL through the DTE text
+    /// buffer. Nothing is written to disk, so the query behaves like a hand-typed
+    /// one: the user is prompted for a location only if they choose to Save.
     /// </summary>
     public static class SsmsQueryLauncher
     {
-        /// <summary>Prefix of the temp .sql files this launcher creates.</summary>
-        private const string TempPrefix = "SsmsToolset_";
-
         public static void OpenNewQuery(object node, string sql)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
@@ -41,37 +36,17 @@ namespace SsmsToolset.Ssms
                 throw new InvalidOperationException("Could not resolve the database connection for this node.");
             }
 
-            // CreateNewScript opens the file's contents as the query text; write our SQL
-            // there with uniform CRLF endings so SSMS doesn't prompt about inconsistent
-            // line endings (generated SQL and OBJECT_DEFINITION text can mix LF and CRLF).
-            string tempPath = Path.Combine(
-                Path.GetTempPath(),
-                TempPrefix + Guid.NewGuid().ToString("N") + ".sql");
-            File.WriteAllText(tempPath, NormalizeNewLines(sql) + "\r\n", new UTF8Encoding(false));
+            // A blank (untitled) connected query — no backing file is created.
+            scriptFactory.CreateNewBlankScript(ScriptType.Sql, connectionInfo, null);
 
-            scriptFactory.CreateNewScript(tempPath, connectionInfo, null);
-        }
+            // The new script is now the active document; inject our SQL into it.
+            if (!(Package.GetGlobalService(typeof(SDTE)) is DTE dte)
+                || !(dte.ActiveDocument?.Object("TextDocument") is TextDocument textDocument))
+            {
+                throw new InvalidOperationException("Could not access the new query editor to insert the script.");
+            }
 
-        /// <summary>
-        /// Best-effort deletion of leftover <c>SsmsToolset_*.sql</c> temp files from
-        /// previous sessions. Files still open in SSMS stay locked and are skipped;
-        /// any error is ignored so startup never fails on cleanup.
-        /// </summary>
-        public static void CleanupTempFiles()
-        {
-            try
-            {
-                foreach (string file in Directory.EnumerateFiles(
-                    Path.GetTempPath(), TempPrefix + "*.sql"))
-                {
-                    try { File.Delete(file); }
-                    catch { /* locked or already gone — skip it */ }
-                }
-            }
-            catch
-            {
-                // Temp folder unreadable: nothing to clean, and startup must continue.
-            }
+            textDocument.StartPoint.CreateEditPoint().Insert(NormalizeNewLines(sql));
         }
 
         /// <summary>

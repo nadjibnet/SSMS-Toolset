@@ -44,6 +44,17 @@ namespace SsmsToolset.Data
         }
 
         /// <summary>
+        /// The SSMS <c>Alt+F1</c> equivalent: <c>EXEC sp_help</c> on the object,
+        /// which returns its full definition (columns, types, indexes, constraints,
+        /// foreign keys, ...) as a set of result grids. Works for any object type.
+        /// </summary>
+        public static string ObjectInfo(DatabaseObject o)
+        {
+            string qualified = $"{Quote(o.Schema)}.{Quote(o.Name)}".Replace("'", "''");
+            return $"EXEC sp_help N'{qualified}'";
+        }
+
+        /// <summary>
         /// Builds a single script with a <c>SELECT TOP 10</c> for every user table
         /// whose name contains "Migration". Each is ordered by <c>MigrationId DESC</c>
         /// when that column exists (skipped otherwise so the query still runs).
