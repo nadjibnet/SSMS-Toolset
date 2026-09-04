@@ -264,9 +264,7 @@
                                                      Background="{DynamicResource T.Input}" Foreground="{DynamicResource T.Text}"
                                                      BorderBrush="{DynamicResource T.Border}" BorderThickness="1"
                                                      ToolTip="Highlight matching text in this column"
-                                                     Text="{Binding ColumnsHighlight,
-                                                            RelativeSource={RelativeSource AncestorType=UserControl},
-                                                            UpdateSourceTrigger=PropertyChanged}"/>
+                                                     TextChanged="ColumnsHighlightBox_TextChanged"/>
                                         </StackPanel>
                                     </DataGridTemplateColumn.Header>
                                     <DataGridTemplateColumn.CellTemplate>

@@ -58,6 +58,12 @@ namespace SsmsToolset.UI
         /// <summary>Restarted on each keystroke; fires the search 500 ms after typing stops.</summary>
         private DispatcherTimer _searchDebounce;
 
+        /// <summary>Debounces the Columns/Params header highlight box (500 ms after typing stops).</summary>
+        private DispatcherTimer _columnsHighlightDebounce;
+
+        /// <summary>Latest text typed in the highlight box, applied when the debounce fires.</summary>
+        private string _pendingColumnsHighlight = string.Empty;
+
         /// <summary>Wired by the host after the frame is shown; docks the tool window.</summary>
         public Action DockAction { get; set; }
 
@@ -97,6 +103,13 @@ namespace SsmsToolset.UI
 
             _searchDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
             _searchDebounce.Tick += (s, e) => { _searchDebounce.Stop(); RunSearch(); };
+
+            _columnsHighlightDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+            _columnsHighlightDebounce.Tick += (s, e) =>
+            {
+                _columnsHighlightDebounce.Stop();
+                ColumnsHighlight = _pendingColumnsHighlight;
+            };
 
             _suppressToggle = true;
             ToggleTables.IsChecked = ToolsetSettings.ShowTables;
@@ -483,6 +496,15 @@ namespace SsmsToolset.UI
             {
                 ObjectsStatus.Text = "Error loading objects: " + ex.Message;
             }
+        }
+
+        // Highlight box in the Columns/Params header: debounce so re-rendering every
+        // cell only happens 500 ms after the user stops typing (same as the search box).
+        private void ColumnsHighlightBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            _pendingColumnsHighlight = ((TextBox)sender).Text ?? string.Empty;
+            _columnsHighlightDebounce.Stop();
+            _columnsHighlightDebounce.Start();
         }
 
         private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
