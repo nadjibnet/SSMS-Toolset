@@ -1,6 +1,6 @@
 # SSMS-Toolset
 
-**Latest release: [v0.2.1](https://github.com/nadjibnet/SSMS-Toolset/releases/tag/0.2.1)** &nbsp;·&nbsp; [⬇ Download VSIX](https://github.com/nadjibnet/SSMS-Toolset/releases/download/0.2.1/SsmsToolset_0.2.1.vsix)
+**Latest release: [v0.2.2](https://github.com/nadjibnet/SSMS-Toolset/releases/tag/0.2.2)** &nbsp;·&nbsp; [⬇ Download VSIX](https://github.com/nadjibnet/SSMS-Toolset/releases/download/0.2.2/SsmsToolset_0.2.2.vsix)
 
 An open-source extension for **SQL Server Management Studio 22** that adds an
 **Azure Data Studio–style set of database tools** to the Object Explorer.
