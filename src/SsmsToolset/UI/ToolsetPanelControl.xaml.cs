@@ -15,6 +15,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using SsmsToolset.Data;
 
 namespace SsmsToolset.UI
@@ -106,6 +107,43 @@ namespace SsmsToolset.UI
 
             ApplyColumnsParamsVisibility();
             LoadObjectsAsync();
+
+            Loaded += (s, e) => MaybeBlinkAboutButton();
+        }
+
+        /// <summary>
+        /// Blinks the About button 5 times the very first time the panel is opened,
+        /// then sets a flag so it never blinks again.
+        /// </summary>
+        private void MaybeBlinkAboutButton()
+        {
+            if (ToolsetSettings.AboutBlinked)
+            {
+                return;
+            }
+
+            ToolsetSettings.AboutBlinked = true;
+            BlinkAboutButton();
+        }
+
+        private void BlinkAboutButton()
+        {
+            Color baseColor = (TryFindResource("T.SubtleBtnBg") as SolidColorBrush)?.Color ?? Colors.Gray;
+            Color flashColor = (TryFindResource("T.AccentBtnBg") as SolidColorBrush)?.Color ?? Colors.DodgerBlue;
+
+            // Give the button its own animatable brush, then restore the themed one.
+            var brush = new SolidColorBrush(baseColor);
+            AboutBtn.Background = brush;
+
+            var animation = new ColorAnimation
+            {
+                To = flashColor,
+                Duration = TimeSpan.FromMilliseconds(280),
+                AutoReverse = true,
+                RepeatBehavior = new RepeatBehavior(5)
+            };
+            animation.Completed += (s, e) => AboutBtn.SetResourceReference(BackgroundProperty, "T.SubtleBtnBg");
+            brush.BeginAnimation(SolidColorBrush.ColorProperty, animation);
         }
 
         // ── Toolbar: refresh + type toggles ─────────────────────────────────
@@ -882,12 +920,6 @@ namespace SsmsToolset.UI
         // ── Header ──────────────────────────────────────────────────────────
 
         private void DockBtn_Click(object sender, RoutedEventArgs e) => DockAction?.Invoke();
-
-        private void RepoLink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
-        {
-            OpenUrl(e.Uri.AbsoluteUri);
-            e.Handled = true;
-        }
 
         private void AboutBtn_Click(object sender, RoutedEventArgs e)
         {

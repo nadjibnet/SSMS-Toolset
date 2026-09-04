@@ -30,6 +30,7 @@ namespace SsmsToolset.UI
         private static bool _showProcedures = true;
         private static bool _showFunctions = true;
         private static bool _showColumnsParams;
+        private static bool _aboutBlinked;
 
         static ToolsetSettings()
         {
@@ -80,6 +81,13 @@ namespace SsmsToolset.UI
         {
             get => _showColumnsParams;
             set => Set(ref _showColumnsParams, value);
+        }
+
+        /// <summary>True once the About button has done its one-time attention blink.</summary>
+        public static bool AboutBlinked
+        {
+            get => _aboutBlinked;
+            set => Set(ref _aboutBlinked, value);
         }
 
         private static void Set<T>(ref T field, T value)
@@ -139,6 +147,9 @@ namespace SsmsToolset.UI
                         case "showcolumnsparams":
                             if (bool.TryParse(value, out bool cp)) _showColumnsParams = cp;
                             break;
+                        case "aboutblinked":
+                            if (bool.TryParse(value, out bool ab)) _aboutBlinked = ab;
+                            break;
                     }
                 }
             }
@@ -165,7 +176,8 @@ namespace SsmsToolset.UI
                     $"ShowViews={_showViews}\r\n" +
                     $"ShowProcedures={_showProcedures}\r\n" +
                     $"ShowFunctions={_showFunctions}\r\n" +
-                    $"ShowColumnsParams={_showColumnsParams}\r\n";
+                    $"ShowColumnsParams={_showColumnsParams}\r\n" +
+                    $"AboutBlinked={_aboutBlinked}\r\n";
                 File.WriteAllText(SettingsPath, contents);
             }
             catch
