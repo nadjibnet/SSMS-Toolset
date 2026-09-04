@@ -13,6 +13,33 @@ query window) that uses that database's own connection, where you can:
 - ▶️ **Select Top 100** / **Select Top 1000** into a new query window
 - …and more tools over time (see the roadmap).
 
+## Screenshots
+
+<sub>Click any image to view it full size.</sub>
+
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <a href="docs/screenshots/objects.png"><img src="docs/screenshots/objects.png" width="420" alt="Objects browser"></a><br>
+      <sub><b>Objects browser</b> — search, type filters, and the Columns/Params column with <code>[pk]</code>/<code>[fk]</code> markers</sub>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <a href="docs/screenshots/full-definition.png"><img src="docs/screenshots/full-definition.png" width="420" alt="Full definition (sp_help)"></a><br>
+      <sub><b>Full definition</b> — <code>sp_help</code> result sets shown as titled, copyable cards</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <a href="docs/screenshots/query.png"><img src="docs/screenshots/query.png" width="420" alt="Query tab"></a><br>
+      <sub><b>Query tab</b> — run SQL with timing, then Copy or Export CSV</sub>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <a href="docs/screenshots/actions.png"><img src="docs/screenshots/actions.png" width="420" alt="Row actions"></a><br>
+      <sub><b>Row actions</b> — Select Top, Update/Delete, Execute, Script as CREATE, Full definition</sub>
+    </td>
+  </tr>
+</table>
+
 > **Status:** early development. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the
 > phase-by-phase plan. We're at **Phase 0 (foundation)**.
 
