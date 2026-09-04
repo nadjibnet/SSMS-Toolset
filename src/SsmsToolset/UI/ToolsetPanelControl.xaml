@@ -103,8 +103,16 @@
         <!-- Header -->
         <DockPanel Grid.Row="0" Margin="0,0,0,12">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="AboutBtn"
+                        Content="About"
+                        Background="{DynamicResource T.SubtleBtnBg}" Foreground="{DynamicResource T.SubtleBtnFg}"
+                        BorderBrush="{DynamicResource T.Border}" BorderThickness="1"
+                        Padding="10,4,10,4" FontSize="12" Cursor="Hand"
+                        ToolTip="About SSMS Toolset"
+                        Click="AboutBtn_Click"/>
                 <Button x:Name="DockBtn"
                         Content="Dock to side"
+                        Margin="8,0,0,0"
                         Background="{DynamicResource T.SubtleBtnBg}" Foreground="{DynamicResource T.SubtleBtnFg}"
                         BorderBrush="{DynamicResource T.Border}" BorderThickness="1"
                         Padding="10,4,10,4" FontSize="12" Cursor="Hand"
@@ -136,19 +144,28 @@
                 </Button>
             </StackPanel>
 
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="SSMS Toolset"
-                           FontSize="20" FontWeight="SemiBold"
-                           Foreground="{DynamicResource T.Accent}" VerticalAlignment="Center"/>
-                <Border Background="{DynamicResource T.BadgeBg}" CornerRadius="4"
-                        Margin="12,0,0,0" Padding="8,2,8,2">
-                    <TextBlock x:Name="DatabaseBadge"
-                               Foreground="{DynamicResource T.BadgeFg}" FontSize="12"
-                               VerticalAlignment="Center"/>
-                </Border>
-                <TextBlock x:Name="VersionText"
-                           Foreground="{DynamicResource T.TextMuted}" FontSize="11"
-                           VerticalAlignment="Bottom" Margin="8,0,0,3"/>
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="SSMS Toolset"
+                               FontSize="20" FontWeight="SemiBold"
+                               Foreground="{DynamicResource T.Accent}" VerticalAlignment="Center"/>
+                    <Border Background="{DynamicResource T.BadgeBg}" CornerRadius="4"
+                            Margin="12,0,0,0" Padding="8,2,8,2">
+                        <TextBlock x:Name="DatabaseBadge"
+                                   Foreground="{DynamicResource T.BadgeFg}" FontSize="12"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock x:Name="VersionText"
+                               Foreground="{DynamicResource T.TextMuted}" FontSize="11"
+                               VerticalAlignment="Bottom" Margin="8,0,0,3"/>
+                </StackPanel>
+                <TextBlock FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap">
+                    <Hyperlink NavigateUri="https://github.com/nadjibnet/SSMS-Toolset.git"
+                               Foreground="{DynamicResource T.Accent}"
+                               RequestNavigate="RepoLink_RequestNavigate">
+                        If SSMS Toolset is useful to you, please &#x2B50; star the project on GitHub &#x2014; it really helps!
+                    </Hyperlink>
+                </TextBlock>
             </StackPanel>
         </DockPanel>
 

@@ -882,5 +882,83 @@ namespace SsmsToolset.UI
         // ── Header ──────────────────────────────────────────────────────────
 
         private void DockBtn_Click(object sender, RoutedEventArgs e) => DockAction?.Invoke();
+
+        private void RepoLink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            OpenUrl(e.Uri.AbsoluteUri);
+            e.Handled = true;
+        }
+
+        private void AboutBtn_Click(object sender, RoutedEventArgs e)
+        {
+            const string repoUrl = "https://github.com/nadjibnet/SSMS-Toolset.git";
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+
+            var panel = new StackPanel { Margin = new Thickness(22) };
+
+            TextBlock Line(string text, double size, FontWeight weight, string brushKey, double bottom)
+            {
+                var block = new TextBlock
+                {
+                    Text = text,
+                    FontSize = size,
+                    FontWeight = weight,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 0, 0, bottom)
+                };
+                block.SetResourceReference(TextBlock.ForegroundProperty, brushKey);
+                return block;
+            }
+
+            panel.Children.Add(Line("SSMS Toolset", 18, FontWeights.SemiBold, "T.Accent", 6));
+            panel.Children.Add(Line($"Version {version.Major}.{version.Minor}.{version.Build}", 13, FontWeights.Normal, "T.Text", 2));
+            panel.Children.Add(Line("by nadjibnet", 13, FontWeights.Normal, "T.TextMuted", 12));
+
+            var link = new System.Windows.Documents.Hyperlink(new System.Windows.Documents.Run(repoUrl))
+            {
+                NavigateUri = new Uri(repoUrl)
+            };
+            link.RequestNavigate += (s, args) => { OpenUrl(args.Uri.AbsoluteUri); args.Handled = true; };
+            var linkBlock = new TextBlock { Margin = new Thickness(0, 0, 0, 12) };
+            linkBlock.SetResourceReference(TextBlock.ForegroundProperty, "T.Accent");
+            linkBlock.Inlines.Add(link);
+            panel.Children.Add(linkBlock);
+
+            panel.Children.Add(Line("If SSMS Toolset is useful to you, please ⭐ star the project on GitHub — it really helps!",
+                13, FontWeights.Normal, "T.Text", 0));
+
+            var window = new Window
+            {
+                Title = "About SSMS Toolset",
+                Content = panel,
+                SizeToContent = SizeToContent.WidthAndHeight,
+                ResizeMode = ResizeMode.NoResize,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                ShowInTaskbar = false,
+                MaxWidth = 460
+            };
+            ToolsetTheme.Apply(window, ToolsetSettings.Theme);
+            window.SetResourceReference(BackgroundProperty, "T.Window");
+
+            var owner = Window.GetWindow(this);
+            if (owner != null)
+            {
+                window.Owner = owner;
+            }
+
+            window.ShowDialog();
+        }
+
+        private static void OpenUrl(string url)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch
+            {
+                // No default browser / blocked — nothing more we can do here.
+            }
+        }
     }
 }
