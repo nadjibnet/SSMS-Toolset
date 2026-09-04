@@ -24,12 +24,21 @@ printf '%s\n' "$new" > "$vfile"
 assembly_info="$root/src/SsmsToolset/Properties/AssemblyInfo.cs"
 manifest="$root/src/SsmsToolset/source.extension.vsixmanifest"
 package="$root/src/SsmsToolset/ToolsetPackage.cs"
+readme="$root/README.md"
 
+# AssemblyVersion is the single source the running extension reads at runtime.
 sed -i -E "s/AssemblyVersion\(\"[0-9]+(\.[0-9]+){3}\"\)/AssemblyVersion(\"$asm\")/" "$assembly_info"
 sed -i -E "s/AssemblyFileVersion\(\"[0-9]+(\.[0-9]+){3}\"\)/AssemblyFileVersion(\"$asm\")/" "$assembly_info"
 sed -i -E "s/(<Identity[^>]*Version=\")[0-9]+(\.[0-9]+){2}(\")/\1$new\3/" "$manifest"
 sed -i -E "s/(productId: \")[0-9]+(\.[0-9]+){2}(\")/\1$new\3/" "$package"
 
-git add "$vfile" "$assembly_info" "$manifest" "$package"
+# README release / download links track the same version.
+if [ -f "$readme" ]; then
+  sed -i -E "s#(releases/tag/)[0-9]+\.[0-9]+\.[0-9]+#\1$new#g" "$readme"
+  sed -i -E "s#(releases/download/)[0-9]+\.[0-9]+\.[0-9]+(/SsmsToolset_)[0-9]+\.[0-9]+\.[0-9]+(\.vsix)#\1$new\2$new\3#g" "$readme"
+  sed -i -E "s#\[v[0-9]+\.[0-9]+\.[0-9]+\]#[v$new]#g" "$readme"
+fi
+
+git add "$vfile" "$assembly_info" "$manifest" "$package" "$readme"
 
 printf 'pre-commit: version bumped to %s\n' "$new"
