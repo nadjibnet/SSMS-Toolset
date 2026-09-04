@@ -1,0 +1,5 @@
+# Code owners for SSMS-Toolset.
+# These owners are automatically requested for review on every pull request,
+# and (with "Require review from Code Owners" enabled) must approve before merge.
+
+* @nadjibnet
