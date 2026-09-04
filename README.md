@@ -50,6 +50,33 @@ to load the assemblies.
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
+## Security & privacy
+
+This extension is designed to keep your credentials and data where SSMS already
+keeps them:
+
+- **Connection is inherited from SSMS.** The panel reuses the connection SSMS has
+  already authenticated for the database you right-clicked — you are never prompted
+  for credentials again, and the tool does not manage its own login.
+- **Nothing sensitive is persisted.** The connection string (including a SQL-auth
+  password, when that auth mode is in use) is held **in memory only**, for the life
+  of the panel. The only file the tool writes to `%LocalAppData%\SsmsToolset\` is
+  `settings.ini`, which stores **UI preferences only** (theme, query target, column
+  toggles) — never connection or credential data.
+- **No logging.** The tool has no log files and writes no diagnostic/telemetry data,
+  so credentials and query contents cannot leak through logs.
+- **`TrustServerCertificate` is enabled** for the tool's own reconnection to the
+  database, matching typical SSMS usage. This trusts the server certificate without
+  chain validation; it reconnects only to the same server SSMS already trusts.
+- **Temp query files.** Opening generated SQL in a *new SSMS query* writes it to a
+  temporary file (`%TEMP%\SsmsToolset_*.sql`) that SSMS then opens. These contain
+  the generated SQL (object/schema names, no credentials). By default the extension
+  **deletes leftover temp files at startup**; you can turn this off in
+  **Options → Maintenance → “Clean temp .sql files at startup.”**
+- **Exports are plaintext.** *Copy* and *Export CSV* on the Query tab write the
+  result rows you chose to export as plaintext (clipboard / `.csv`). Treat those
+  outputs as sensitive if the underlying data is.
+
 ## Honest disclaimer
 
 Microsoft classifies **third-party SSMS extensions as unsupported** — SSMS does

@@ -30,6 +30,7 @@ namespace SsmsToolset.UI
         private static bool _showProcedures = true;
         private static bool _showFunctions = true;
         private static bool _showColumnsParams;
+        private static bool _cleanTempOnStartup = true;
 
         static ToolsetSettings()
         {
@@ -80,6 +81,17 @@ namespace SsmsToolset.UI
         {
             get => _showColumnsParams;
             set => Set(ref _showColumnsParams, value);
+        }
+
+        /// <summary>
+        /// Whether to delete leftover <c>SsmsToolset_*.sql</c> temp files (created
+        /// when opening SQL in a new SSMS query) from the temp folder at startup.
+        /// On by default.
+        /// </summary>
+        public static bool CleanTempOnStartup
+        {
+            get => _cleanTempOnStartup;
+            set => Set(ref _cleanTempOnStartup, value);
         }
 
         private static void Set<T>(ref T field, T value)
@@ -139,6 +151,9 @@ namespace SsmsToolset.UI
                         case "showcolumnsparams":
                             if (bool.TryParse(value, out bool cp)) _showColumnsParams = cp;
                             break;
+                        case "cleantemponstartup":
+                            if (bool.TryParse(value, out bool ct)) _cleanTempOnStartup = ct;
+                            break;
                     }
                 }
             }
@@ -165,7 +180,8 @@ namespace SsmsToolset.UI
                     $"ShowViews={_showViews}\r\n" +
                     $"ShowProcedures={_showProcedures}\r\n" +
                     $"ShowFunctions={_showFunctions}\r\n" +
-                    $"ShowColumnsParams={_showColumnsParams}\r\n";
+                    $"ShowColumnsParams={_showColumnsParams}\r\n" +
+                    $"CleanTempOnStartup={_cleanTempOnStartup}\r\n";
                 File.WriteAllText(SettingsPath, contents);
             }
             catch

@@ -131,6 +131,10 @@
                             <MenuItem Header="Objects list" IsEnabled="False"/>
                             <MenuItem x:Name="ShowColumnsItem" Header="Show Columns/Params column (slower load)"
                                       IsCheckable="True" Click="ShowColumns_Click"/>
+                            <Separator/>
+                            <MenuItem Header="Maintenance" IsEnabled="False"/>
+                            <MenuItem x:Name="CleanTempItem" Header="Clean temp .sql files at startup"
+                                      IsCheckable="True" Click="CleanTemp_Click"/>
                         </ContextMenu>
                     </Button.ContextMenu>
                 </Button>

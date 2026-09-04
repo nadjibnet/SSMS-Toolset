@@ -23,6 +23,9 @@ namespace SsmsToolset.Ssms
     /// </summary>
     public static class SsmsQueryLauncher
     {
+        /// <summary>Prefix of the temp .sql files this launcher creates.</summary>
+        private const string TempPrefix = "SsmsToolset_";
+
         public static void OpenNewQuery(object node, string sql)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
@@ -43,10 +46,32 @@ namespace SsmsToolset.Ssms
             // line endings (generated SQL and OBJECT_DEFINITION text can mix LF and CRLF).
             string tempPath = Path.Combine(
                 Path.GetTempPath(),
-                "SsmsToolset_" + Guid.NewGuid().ToString("N") + ".sql");
+                TempPrefix + Guid.NewGuid().ToString("N") + ".sql");
             File.WriteAllText(tempPath, NormalizeNewLines(sql) + "\r\n", new UTF8Encoding(false));
 
             scriptFactory.CreateNewScript(tempPath, connectionInfo, null);
+        }
+
+        /// <summary>
+        /// Best-effort deletion of leftover <c>SsmsToolset_*.sql</c> temp files from
+        /// previous sessions. Files still open in SSMS stay locked and are skipped;
+        /// any error is ignored so startup never fails on cleanup.
+        /// </summary>
+        public static void CleanupTempFiles()
+        {
+            try
+            {
+                foreach (string file in Directory.EnumerateFiles(
+                    Path.GetTempPath(), TempPrefix + "*.sql"))
+                {
+                    try { File.Delete(file); }
+                    catch { /* locked or already gone — skip it */ }
+                }
+            }
+            catch
+            {
+                // Temp folder unreadable: nothing to clean, and startup must continue.
+            }
         }
 
         /// <summary>

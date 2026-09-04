@@ -186,6 +186,12 @@ namespace SsmsToolset.UI
             TargetSsmsItem.IsChecked = ToolsetSettings.QueryTarget == QueryTarget.NewSsmsQuery;
 
             ShowColumnsItem.IsChecked = ToolsetSettings.ShowColumnsParams;
+            CleanTempItem.IsChecked = ToolsetSettings.CleanTempOnStartup;
+        }
+
+        private void CleanTemp_Click(object sender, RoutedEventArgs e)
+        {
+            ToolsetSettings.CleanTempOnStartup = CleanTempItem.IsChecked == true;
         }
 
         private void ShowColumns_Click(object sender, RoutedEventArgs e)
