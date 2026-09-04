@@ -17,7 +17,7 @@ namespace SsmsToolset.Data
             => o != null && (o.TypeCode == "U" || o.TypeCode == "V");
 
         public static string SelectTop(DatabaseObject o, int count)
-            => $"SELECT TOP ({count}) *\nFROM {Quote(o.Schema)}.{Quote(o.Name)}\nWHERE 1 = 1\n-- AND ";
+            => $"SELECT    TOP ({count})\n        *\nFROM    {Quote(o.Schema)}.{Quote(o.Name)}\nWHERE    1 = 1\n-- AND    ";
 
         /// <summary>
         /// A SELECT TOP N that lists every column explicitly (round-trips to the DB
@@ -32,14 +32,14 @@ namespace SsmsToolset.Data
             }
 
             var sb = new StringBuilder();
-            sb.Append($"SELECT TOP ({count})\n");
+            sb.Append($"SELECT    TOP ({count})\n");
             for (int i = 0; i < columns.Count; i++)
             {
-                sb.Append("    ").Append(Quote(columns[i]));
+                sb.Append("        ").Append(Quote(columns[i]));
                 if (i < columns.Count - 1) { sb.Append(','); }
                 sb.Append('\n');
             }
-            sb.Append($"FROM {Quote(o.Schema)}.{Quote(o.Name)}\nWHERE 1 = 1\n-- AND ");
+            sb.Append($"FROM    {Quote(o.Schema)}.{Quote(o.Name)}\nWHERE    1 = 1\n-- AND    ");
             return sb.ToString();
         }
 
@@ -89,31 +89,31 @@ ORDER BY s.name, o.name;";
         }
 
         /// <summary>
-        /// An UPDATE that lists every column (round-trips to the DB). The whole
-        /// statement is commented out so it is never run by accident — the user
-        /// uncomments the columns they actually want to set. The WHERE clause is
-        /// keyed on the primary key (or the first column if there is none).
+        /// An UPDATE that lists every column (round-trips to the DB). The UPDATE and
+        /// WHERE lines are live, but every column assignment is commented out — the
+        /// user uncomments only the columns they actually want to set. The WHERE
+        /// clause is keyed on the primary key (or the first column if there is none).
         /// </summary>
         public static string UpdateStatement(string connectionString, DatabaseObject o)
         {
             GetColumnsAndKeys(connectionString, o, out var columns, out var keys);
 
             var sb = new StringBuilder();
-            sb.Append($"-- UPDATE {Quote(o.Schema)}.{Quote(o.Name)} SET\n");
+            sb.Append($"UPDATE    {Quote(o.Schema)}.{Quote(o.Name)} \nSET\n");
             if (columns.Count == 0)
             {
-                sb.Append("--     [Column] = <value>\n");
+                sb.Append("--        [Column] = <value>\n");
             }
             else
             {
                 for (int i = 0; i < columns.Count; i++)
                 {
-                    sb.Append("--     ").Append(Quote(columns[i])).Append(" = <value>");
+                    sb.Append("--        ").Append(Quote(columns[i])).Append(" = <value>");
                     if (i < columns.Count - 1) { sb.Append(','); }
                     sb.Append('\n');
                 }
             }
-            sb.Append("-- WHERE ").Append(BuildWhere(keys, columns));
+            sb.Append("WHERE    ").Append(BuildWhere(keys, columns));
             return sb.ToString();
         }
 
@@ -124,7 +124,7 @@ ORDER BY s.name, o.name;";
         public static string DeleteStatement(string connectionString, DatabaseObject o)
         {
             GetColumnsAndKeys(connectionString, o, out var columns, out var keys);
-            return $"DELETE FROM {Quote(o.Schema)}.{Quote(o.Name)}\nWHERE {BuildWhere(keys, columns)}";
+            return $"DELETE \nFROM    {Quote(o.Schema)}.{Quote(o.Name)}\nWHERE    {BuildWhere(keys, columns)}";
         }
 
         /// <summary>
