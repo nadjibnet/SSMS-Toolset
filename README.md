@@ -20,22 +20,22 @@ query window) that uses that database's own connection, where you can:
 <table>
   <tr>
     <td width="50%" align="center" valign="top">
-      <a href="docs/screenshots/objects.png"><img src="docs/screenshots/objects.png" width="420" alt="Objects browser"></a><br>
-      <sub><b>Objects browser</b> — search, type filters, and the Columns/Params column with <code>[pk]</code>/<code>[fk]</code> markers</sub>
+      <a href="samples/screen-1.jpg"><img src="samples/screen-1.jpg" width="420" alt="Launch from Object Explorer"></a><br>
+      <sub><b>Launch</b> — right-click a database in Object Explorer &rarr; <b>SSMS Toolset</b></sub>
     </td>
     <td width="50%" align="center" valign="top">
-      <a href="docs/screenshots/full-definition.png"><img src="docs/screenshots/full-definition.png" width="420" alt="Full definition (sp_help)"></a><br>
-      <sub><b>Full definition</b> — <code>sp_help</code> result sets shown as titled, copyable cards</sub>
+      <a href="samples/screen-3.jpg"><img src="samples/screen-3.jpg" width="420" alt="Objects browser and row actions"></a><br>
+      <sub><b>Objects browser</b> — search, type filters, Columns/Params with <code>[pk]</code>/<code>[fk]</code> markers, and per-row actions</sub>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center" valign="top">
-      <a href="docs/screenshots/query.png"><img src="docs/screenshots/query.png" width="420" alt="Query tab"></a><br>
-      <sub><b>Query tab</b> — run SQL with timing, then Copy or Export CSV</sub>
+      <a href="samples/screen-4.jpg"><img src="samples/screen-4.jpg" width="420" alt="Full definition (sp_help)"></a><br>
+      <sub><b>Full definition</b> — <code>sp_help</code> result sets shown as titled, copyable cards</sub>
     </td>
     <td width="50%" align="center" valign="top">
-      <a href="docs/screenshots/actions.png"><img src="docs/screenshots/actions.png" width="420" alt="Row actions"></a><br>
-      <sub><b>Row actions</b> — Select Top, Update/Delete, Execute, Script as CREATE, Full definition</sub>
+      <a href="samples/screen-2.jpg"><img src="samples/screen-2.jpg" width="420" alt="Options menu"></a><br>
+      <sub><b>Options</b> — dark/light theme, open queries in a new SSMS query or the built-in tab, optional Columns/Params column</sub>
     </td>
   </tr>
 </table>
